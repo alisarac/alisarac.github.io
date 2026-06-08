@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e1116">
+<title>Tessera</title>
+<style>
+  :root{ --bg:#0e1116; --panel:#1a1f29; --cell:#222836; --ink:#e8ecf4; --muted:#7c879c; --accent:#5ad1c5; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+    overscroll-behavior:none;touch-action:none;user-select:none;}
+  #app{min-height:100%;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:14px;padding:16px env(safe-area-inset-right) calc(16px + env(safe-area-inset-bottom)) env(safe-area-inset-left);}
+  header{width:100%;max-width:480px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;}
+  .title{font-size:28px;font-weight:800;letter-spacing:.5px;}
+  .title small{display:block;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+  .scores{display:flex;gap:8px;}
+  .score{background:var(--panel);border-radius:12px;padding:8px 14px;text-align:center;min-width:78px;}
+  .score .lab{font-size:10px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;}
+  .score .val{font-size:22px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums;}
+  #stage{position:relative;width:100%;max-width:480px;}
+  canvas{width:100%;display:block;}
+  .bar{width:100%;max-width:480px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .hint{font-size:12px;color:var(--muted);line-height:1.4;}
+  button{background:var(--cell);color:var(--ink);border:0;border-radius:12px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;}
+  button:active{transform:scale(.97);}
+  #over{position:absolute;left:0;right:0;top:0;border-radius:16px;display:none;
+    flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    background:rgba(14,17,22,.85);backdrop-filter:blur(3px);}
+  #over h2{margin:0;font-size:30px;font-weight:900;}
+  #over p{margin:0;color:var(--muted);}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="title">Tessera<small>place · fill · clear</small></div>
+    <div class="scores">
+      <div class="score"><div class="lab">Score</div><div class="val" id="score">0</div></div>
+      <div class="score"><div class="lab">Best</div><div class="val" id="best">0</div></div>
+    </div>
+  </header>
+
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="over">
+      <h2>No room left</h2>
+      <p id="overScore">Score 0</p>
+      <button id="againBtn">Play again</button>
+    </div>
+  </div>
+
+  <div class="bar">
+    <div class="hint">Drag all three pieces onto the board.<br>Fill a full row or column to clear it.</div>
+    <button id="newBtn">New game</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const N = 8;                  // board is N x N
+  const TRAY = 3;               // pieces per tray
+
+  // ---- piece shapes (normalized cell offsets) + color ----
+  // grouped for weighting; smaller pieces appear more often
+  const SHAPES = [
+    { cells:[[0,0]], color:'#5ad1c5', w:2 },                                   // dot
+    { cells:[[0,0],[0,1]], color:'#3f9e8a', w:3 },                             // domino h
+    { cells:[[0,0],[1,0]], color:'#3f9e8a', w:3 },                             // domino v
+    { cells:[[0,0],[0,1],[0,2]], color:'#56b85a', w:3 },                       // tri h
+    { cells:[[0,0],[1,0],[2,0]], color:'#56b85a', w:3 },                       // tri v
+    { cells:[[0,0],[1,0],[1,1]], color:'#9ec23f', w:2 },                       // L tromino
+    { cells:[[0,0],[0,1],[1,1]], color:'#9ec23f', w:2 },
+    { cells:[[0,1],[1,0],[1,1]], color:'#9ec23f', w:2 },
+    { cells:[[0,0],[0,1],[1,0]], color:'#9ec23f', w:2 },
+    { cells:[[0,0],[0,1],[1,0],[1,1]], color:'#c2a83f', w:2 },                 // 2x2 square
+    { cells:[[0,0],[0,1],[0,2],[0,3]], color:'#c2783f', w:1 },                 // I4 h
+    { cells:[[0,0],[1,0],[2,0],[3,0]], color:'#c2783f', w:1 },                 // I4 v
+    { cells:[[0,0],[0,1],[0,2],[1,0]], color:'#b83f74', w:1 },                 // L4
+    { cells:[[0,0],[0,1],[0,2],[1,2]], color:'#b83f74', w:1 },                 // J4
+    { cells:[[0,0],[0,1],[0,2],[1,1]], color:'#8a3fc2', w:1 },                 // T4
+    { cells:[[1,0],[1,1],[0,1],[0,2]], color:'#5a4fd1', w:1 },                 // S4
+    { cells:[[0,0],[0,1],[1,1],[1,2]], color:'#5a4fd1', w:1 },                 // Z4
+    { cells:[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2]], color:'#c24f3f', w:1 },     // 2x3 block
+  ];
+  const BAG = [];
+  for (const s of SHAPES) for (let i = 0; i < s.w; i++) BAG.push(s);
+  const randShape = () => {
+    const s = BAG[(Math.random() * BAG.length) | 0];
+    return { cells: s.cells.map(c => c.slice()), color: s.color };
+  };
+  const dims = cells => {
+    let R = 0, C = 0; for (const [r, c] of cells) { R = Math.max(R, r); C = Math.max(C, c); }
+    return [R + 1, C + 1];
+  };
+
+  // ---- DOM ----
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+  const overEl = document.getElementById('over');
+  const overScoreEl = document.getElementById('overScore');
+  const stage = document.getElementById('stage');
+
+  // ---- state ----
+  let board;          // N*N of color|null
+  let tray;           // array length TRAY of {cells,color}|null
+  let score, best = +(localStorage.getItem('tessera_best') || 0), gameOver;
+  let drag = null;    // {slot, shape, px, py, grabDX, grabDY}
+  let flashing = [];  // cells being cleared {r,c,color,t}
+  bestEl.textContent = best;
+
+  const at = (r, c) => board[r * N + c];
+  const setAt = (r, c, v) => board[r * N + c] = v;
+
+  function reset() {
+    board = new Array(N * N).fill(null);
+    tray = [];
+    score = 0; gameOver = false; drag = null; flashing = [];
+    scoreEl.textContent = '0';
+    overEl.style.display = 'none';
+    refill();
+    layout(); draw();
+  }
+
+  function refill() { for (let i = 0; i < TRAY; i++) tray[i] = randShape(); }
+
+  function fits(shape, r0, c0) {
+    for (const [dr, dc] of shape.cells) {
+      const r = r0 + dr, c = c0 + dc;
+      if (r < 0 || c < 0 || r >= N || c >= N) return false;
+      if (at(r, c)) return false;
+    }
+    return true;
+  }
+  function anyFit(shape) {
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (fits(shape, r, c)) return true;
+    return false;
+  }
+
+  function place(slot, r0, c0) {
+    const shape = tray[slot];
+    const placed = [];
+    for (const [dr, dc] of shape.cells) { setAt(r0 + dr, c0 + dc, shape.color); placed.push([r0 + dr, c0 + dc]); }
+    score += shape.cells.length;
+    tray[slot] = null;
+
+    // find full rows / cols
+    const fullR = [], fullC = [];
+    for (let r = 0; r < N; r++) { let f = true; for (let c = 0; c < N; c++) if (!at(r, c)) { f = false; break; } if (f) fullR.push(r); }
+    for (let c = 0; c < N; c++) { let f = true; for (let r = 0; r < N; r++) if (!at(r, c)) { f = false; break; } if (f) fullC.push(c); }
+    const lines = fullR.length + fullC.length;
+
+    if (lines > 0) {
+      const cleared = new Set();
+      for (const r of fullR) for (let c = 0; c < N; c++) cleared.add(r * N + c);
+      for (const c of fullC) for (let r = 0; r < N; r++) cleared.add(r * N + c);
+      flashing = [...cleared].map(i => ({ r: (i / N) | 0, c: i % N, color: board[i], t: 0 }));
+      for (const i of cleared) board[i] = null;
+      score += lines * (lines + 1) / 2 * 10;     // 1 line=10, 2=30, 3=60...
+    }
+
+    scoreEl.textContent = score;
+    if (score > best) { best = score; bestEl.textContent = best; localStorage.setItem('tessera_best', best); }
+
+    if (tray.every(p => p === null)) refill();
+
+    // game over if no remaining piece fits anywhere
+    if (tray.every(p => p === null || !anyFit(p))) endGame();
+
+    animate(lines > 0 ? 220 : 90, p => {
+      for (const f of flashing) f.t = p;
+    }, () => { flashing = []; draw(); });
+  }
+
+  function endGame() {
+    gameOver = true;
+    overScoreEl.textContent = 'Score ' + score;
+    overEl.style.display = 'flex';
+    overEl.style.height = (L.board + L.gap) + 'px';
+  }
+
+  // ---- layout ----
+  let L = {};   // pixel layout
+  function layout() {
+    const cssW = stage.clientWidth || 480;
+    const gap = cssW * 0.012;
+    const cell = (cssW - gap * (N + 1)) / N;
+    const board = cssW;                 // square board height
+    const trayGap = cssW * 0.05;
+    const trayCell = cell * 0.62;       // pieces drawn smaller in tray
+    const trayH = trayCell * 4 + gap * 3 + 18;
+    const totalH = board + trayGap + trayH;
+    L = { cssW, gap, cell, board, trayGap, trayCell, trayH, totalH };
+
+    const dpr = window.devicePixelRatio || 1;
+    cv.style.width = cssW + 'px';
+    cv.style.height = totalH + 'px';
+    cv.width = cssW * dpr; cv.height = totalH * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  // board cell -> px (top-left)
+  const cellXY = (r, c) => [L.gap + c * (L.cell + L.gap), L.gap + r * (L.cell + L.gap)];
+  // tray slot -> px region
+  function slotBox(i) {
+    const slotW = L.cssW / TRAY;
+    return { x: i * slotW, y: L.board + L.trayGap, w: slotW, h: L.trayH };
+  }
+
+  function rr(x, y, w, h, rad) {
+    ctx.beginPath();
+    ctx.moveTo(x + rad, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rad);
+    ctx.arcTo(x + w, y + h, x, y + h, rad);
+    ctx.arcTo(x, y + h, x, y, rad);
+    ctx.arcTo(x, y, x + w, y, rad);
+    ctx.closePath();
+  }
+  function block(x, y, s, color, alpha) {
+    ctx.save(); ctx.globalAlpha = alpha == null ? 1 : alpha;
+    ctx.fillStyle = color; rr(x, y, s, s, s * 0.18); ctx.fill();
+    ctx.restore();
+  }
+
+  function draw() {
+    if (!L.cssW) return;
+    ctx.clearRect(0, 0, L.cssW, L.totalH);
+    const { cell } = L;
+
+    // board background + placed cells
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const [x, y] = cellXY(r, c);
+      ctx.fillStyle = '#222836'; rr(x, y, cell, cell, cell * 0.18); ctx.fill();
+      const col = at(r, c);
+      if (col) block(x, y, cell, col);
+    }
+
+    // clearing flash
+    for (const f of flashing) {
+      const [x, y] = cellXY(f.r, f.c);
+      const s = 1 + 0.25 * Math.sin(f.t * Math.PI);
+      const cs = cell * s, off = (cell - cs) / 2;
+      block(x + off, y + off, cs, '#ffffff', 1 - f.t);
+    }
+
+    // drag preview on board (snapped)
+    if (drag) {
+      const snap = snapCell();
+      if (snap) {
+        const ok = fits(drag.shape, snap.r, snap.c);
+        for (const [dr, dc] of drag.shape.cells) {
+          const [x, y] = cellXY(snap.r + dr, snap.c + dc);
+          ctx.save(); ctx.globalAlpha = 0.9;
+          ctx.fillStyle = ok ? drag.shape.color : '#c24f3f';
+          rr(x, y, cell, cell, cell * 0.18); ctx.fill();
+          if (!ok) { ctx.globalAlpha = 1; ctx.strokeStyle = '#c24f3f'; ctx.lineWidth = 2; ctx.stroke(); }
+          ctx.restore();
+        }
+      }
+    }
+
+    // tray
+    for (let i = 0; i < TRAY; i++) {
+      if (drag && drag.slot === i) continue;      // hide piece being dragged from its slot
+      const p = tray[i]; if (!p) continue;
+      const box = slotBox(i);
+      const [R, C] = dims(p.cells);
+      const tc = L.trayCell, g = L.gap * 0.6;
+      const pw = C * tc + (C - 1) * g, ph = R * tc + (R - 1) * g;
+      const ox = box.x + (box.w - pw) / 2, oy = box.y + (box.h - ph) / 2;
+      for (const [dr, dc] of p.cells) block(ox + dc * (tc + g), oy + dr * (tc + g), tc, p.color);
+    }
+
+    // floating dragged piece (follows finger, lifted above it)
+    if (drag) {
+      const tc = L.cell, g = L.gap;
+      for (const [dr, dc] of drag.shape.cells) {
+        const x = drag.px - drag.grabDX + dc * (tc + g);
+        const y = drag.py - drag.grabDY + dr * (tc + g);
+        block(x, y, tc, drag.shape.color, 0.55);
+      }
+    }
+  }
+
+  // where the dragged piece would land (top-left board cell), or null if off-board
+  function snapCell() {
+    if (!drag) return null;
+    const tc = L.cell, g = L.gap;
+    const tlx = drag.px - drag.grabDX;          // piece top-left in css px
+    const tly = drag.py - drag.grabDY;
+    const c = Math.round((tlx - g) / (tc + g));
+    const r = Math.round((tly - g) / (tc + g));
+    const [R, C] = dims(drag.shape.cells);
+    if (r < 0 || c < 0 || r + R > N || c + C > N) return null;
+    return { r, c };
+  }
+
+  // ---- animation helper ----
+  function animate(dur, step, done) {
+    const t0 = performance.now();
+    (function frame(now) {
+      let p = (now - t0) / dur; if (p > 1) p = 1;
+      step(p); draw();
+      if (p < 1) requestAnimationFrame(frame); else done && done();
+    })(performance.now());
+  }
+
+  // ---- input (pointer) ----
+  function localXY(e) {
+    const rect = cv.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return [t.clientX - rect.left, t.clientY - rect.top];
+  }
+  function pickTray(px, py) {
+    for (let i = 0; i < TRAY; i++) {
+      const p = tray[i]; if (!p) continue;
+      const box = slotBox(i);
+      if (px >= box.x && px <= box.x + box.w && py >= box.y && py <= box.y + box.h) return i;
+    }
+    return -1;
+  }
+  function onDown(e) {
+    if (gameOver) return;
+    const [px, py] = localXY(e);
+    const slot = pickTray(px, py);
+    if (slot < 0) return;
+    e.preventDefault();
+    const shape = tray[slot];
+    const [, C] = dims(shape.cells);
+    // grab offset: center the piece on the finger, lifted ~1 cell up so it's visible
+    const tc = L.cell, g = L.gap;
+    const pw = C * tc + (C - 1) * g;
+    drag = { slot, shape, px, py, grabDX: pw / 2, grabDY: L.cell * 1.4 };
+    draw();
+  }
+  function onMove(e) {
+    if (!drag) return;
+    e.preventDefault();
+    [drag.px, drag.py] = localXY(e);
+    draw();
+  }
+  function onUp() {
+    if (!drag) return;
+    const snap = snapCell();
+    const slot = drag.slot, shape = drag.shape;
+    drag = null;
+    if (snap && fits(shape, snap.r, snap.c)) place(slot, snap.r, snap.c);
+    else draw();   // invalid drop -> piece returns to tray
+  }
+
+  cv.addEventListener('touchstart', onDown, { passive: false });
+  cv.addEventListener('touchmove', onMove, { passive: false });
+  cv.addEventListener('touchend', onUp);
+  cv.addEventListener('mousedown', onDown);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+
+  document.getElementById('newBtn').addEventListener('click', reset);
+  document.getElementById('againBtn').addEventListener('click', reset);
+  window.addEventListener('resize', () => { layout(); draw(); });
+
+  // ---- boot ----
+  reset();
+})();
+</script>
+</body>
+</html>
