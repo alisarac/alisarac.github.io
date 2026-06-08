@@ -71,7 +71,7 @@
 
   // ---- state ----
   let stock, waste, foundations, tableau;   // piles
-  let moves, sel, history, won;
+  let moves, history, won;
   let wins = +(localStorage.getItem('solitaire_wins') || 0);
   winsEl.textContent = wins;
 
@@ -82,7 +82,7 @@
     tableau = [[], [], [], [], [], [], []];
     for (let c = 0; c < 7; c++) for (let k = 0; k <= c; k++) tableau[c].push({ card: deck.pop(), up: k === c });
     stock = deck; waste = []; foundations = [[], [], [], []];
-    moves = 0; sel = null; history = []; won = false;
+    moves = 0; history = []; won = false;
     movesEl.textContent = 0; wonEl.style.display = 'none'; undoBtn.disabled = true;
     draw();
   }
@@ -90,7 +90,7 @@
   const snapshot = () => JSON.stringify({ stock, waste, foundations, tableau });
   const restore = s => { const o = JSON.parse(s); stock = o.stock; waste = o.waste; foundations = o.foundations; tableau = o.tableau; };
   function pushHistory() { history.push(snapshot()); if (history.length > 400) history.shift(); undoBtn.disabled = false; }
-  function undo() { if (!history.length || won) return; restore(history.pop()); moves = Math.max(0, moves - 1); movesEl.textContent = moves; undoBtn.disabled = history.length === 0; sel = null; draw(); }
+  function undo() { if (!history.length || won) return; restore(history.pop()); moves = Math.max(0, moves - 1); movesEl.textContent = moves; undoBtn.disabled = history.length === 0; draw(); }
 
   // ---- rules ----
   const tabTop = c => tableau[c][tableau[c].length - 1];
@@ -112,43 +112,43 @@
     return card.s === top.s && card.r === top.r + 1;
   }
 
-  // selected cards (bottom-first) from current selection
-  function selCards() {
-    if (!sel) return [];
-    if (sel.t === 'waste') return [waste[waste.length - 1]];
-    if (sel.t === 'foundation') { const p = foundations[sel.f]; return [p[p.length - 1]]; }
-    if (sel.t === 'tableau') return tableau[sel.col].slice(sel.idx).map(o => o.card);
+  // ---- move helpers (tap = smart auto-move) ----
+  function cardsOf(src) {
+    if (src.t === 'waste') return waste.length ? [waste[waste.length - 1]] : [];
+    if (src.t === 'tableau') return tableau[src.col].slice(src.idx).map(o => o.card);
     return [];
   }
-  function removeSel() {
-    if (sel.t === 'waste') waste.pop();
-    else if (sel.t === 'foundation') foundations[sel.f].pop();
-    else if (sel.t === 'tableau') { tableau[sel.col].splice(sel.idx); const nt = tabTop(sel.col); if (nt && !nt.up) nt.up = true; }
+  function removeFrom(src) {
+    if (src.t === 'waste') waste.pop();
+    else if (src.t === 'tableau') { tableau[src.col].splice(src.idx); const nt = tabTop(src.col); if (nt && !nt.up) nt.up = true; }
   }
-
-  function tryMoveTo(dest) {
-    const cards = selCards(); if (!cards.length) return false;
-    if (dest.t === 'foundation') {
-      if (cards.length !== 1) return false;
-      if (!canToFoundation(cards[0], dest.f)) return false;
-      const c = cards[0]; pushHistory(); removeSel(); foundations[dest.f].push(c); afterMove(); return true;
-    }
-    if (dest.t === 'tableau') {
-      if (!canToTableau(cards[0], dest.col)) return false;
-      pushHistory(); removeSel();
-      for (const c of cards) tableau[dest.col].push({ card: c, up: true });
-      afterMove(); return true;
-    }
+  function doMove(src, dest) {
+    const cards = cardsOf(src); if (!cards.length) return false;
+    pushHistory(); removeFrom(src);
+    if (dest.t === 'foundation') foundations[dest.f].push(cards[0]);
+    else for (const c of cards) tableau[dest.col].push({ card: c, up: true });
+    moves++; movesEl.textContent = moves; checkWin(); draw(); return true;
+  }
+  function flipTop(col) { pushHistory(); tabTop(col).up = true; moves++; movesEl.textContent = moves; draw(); }
+  function bestFoundation(card) { for (let f = 0; f < 4; f++) if (canToFoundation(card, f)) return f; return -1; }
+  function bestTableau(card, exceptCol) {
+    for (let c = 0; c < 7; c++) { if (c === exceptCol || !tableau[c].length) continue; if (canToTableau(card, c)) return c; }
+    if (card.r === 13) for (let c = 0; c < 7; c++) { if (c !== exceptCol && !tableau[c].length) return c; }
+    return -1;
+  }
+  // single-card tap: foundation first, else a tableau column
+  function autoMove(card, src) {
+    const f = bestFoundation(card); if (f >= 0) return doMove(src, { t: 'foundation', f });
+    const c = bestTableau(card, src.t === 'tableau' ? src.col : -1); if (c >= 0) return doMove(src, { t: 'tableau', col: c });
     return false;
   }
-  function afterMove() { moves++; movesEl.textContent = moves; sel = null; checkWin(); draw(); }
 
   function drawFromStock() {
     pushHistory();
     if (stock.length) { waste.push(stock.pop()); }
     else if (waste.length) { while (waste.length) stock.push(waste.pop()); }
     else { history.pop(); undoBtn.disabled = history.length === 0; return; }
-    moves++; movesEl.textContent = moves; sel = null; draw();
+    moves++; movesEl.textContent = moves; draw();
   }
 
   function autoFoundations() {
@@ -164,7 +164,7 @@
         if (moved) break;
       }
     }
-    if (any) { movesEl.textContent = moves; sel = null; checkWin(); draw(); }
+    if (any) { movesEl.textContent = moves; checkWin(); draw(); }
   }
 
   function checkWin() {
@@ -247,11 +247,11 @@
     // stock
     if (stock.length) cardBack(M.colX(0), M.topY); else slot(M.colX(0), M.topY, '↻');
     // waste
-    if (waste.length) cardFace(M.colX(1), M.topY, waste[waste.length - 1], sel && sel.t === 'waste'); else slot(M.colX(1), M.topY);
+    if (waste.length) cardFace(M.colX(1), M.topY, waste[waste.length - 1], false); else slot(M.colX(1), M.topY);
     // foundations
     for (let f = 0; f < 4; f++) {
       const x = M.colX(3 + f), p = foundations[f];
-      if (p.length) cardFace(x, M.topY, p[p.length - 1], sel && sel.t === 'foundation' && sel.f === f); else slot(x, M.topY, SUIT[f]);
+      if (p.length) cardFace(x, M.topY, p[p.length - 1], false); else slot(x, M.topY, SUIT[f]);
     }
     // tableau
     for (let c = 0; c < 7; c++) {
@@ -259,8 +259,7 @@
       if (!t.length) { slot(x, M.tabY); continue; }
       for (let i = 0; i < t.length; i++) {
         const y = tabCardY(c, i);
-        const isSel = sel && sel.t === 'tableau' && sel.col === c && i >= sel.idx;
-        if (t[i].up) cardFace(x, y, t[i].card, isSel); else cardBack(x, y);
+        if (t[i].up) cardFace(x, y, t[i].card, false); else cardBack(x, y);
       }
     }
   }
@@ -286,43 +285,32 @@
 
   function onTap(x, y) {
     if (won) return;
-    const h = hit(x, y);
-    if (!h) { sel = null; draw(); return; }
+    const h = hit(x, y); if (!h) return;
     if (h.t === 'stock') { drawFromStock(); return; }
-
-    // with an active selection, treat tap as destination
-    if (sel) {
-      // tapping a tableau pile/card -> destination column
-      if (h.t === 'tableau') { if (tryMoveTo({ t: 'tableau', col: h.col })) return; }
-      if (h.t === 'foundation') { if (tryMoveTo({ t: 'foundation', f: h.f })) return; }
-      // otherwise fall through to (re)selection
-    }
-
-    // selection logic
-    if (h.t === 'waste') { if (!waste.length) { sel = null; draw(); return; } sel = selEq(sel, { t: 'waste' }) ? null : { t: 'waste' }; draw(); return; }
-    if (h.t === 'foundation') { const p = foundations[h.f]; if (!p.length) { sel = null; draw(); return; } sel = selEq(sel, { t: 'foundation', f: h.f }) ? null : { t: 'foundation', f: h.f }; draw(); return; }
+    if (h.t === 'waste') { if (waste.length) autoMove(waste[waste.length - 1], { t: 'waste' }); return; }
+    if (h.t === 'foundation') return;
     if (h.t === 'tableau') {
-      if (h.empty) { sel = null; draw(); return; }
-      const o = tableau[h.col][h.idx];
-      if (!o.up) { // tap a face-down top to flip
-        if (h.idx === tableau[h.col].length - 1) { pushHistory(); o.up = true; moves++; movesEl.textContent = moves; sel = null; draw(); }
-        else { sel = null; draw(); }
-        return;
-      }
-      if (!validRun(h.col, h.idx)) { sel = null; draw(); return; }
-      sel = selEq(sel, { t: 'tableau', col: h.col, idx: h.idx }) ? null : { t: 'tableau', col: h.col, idx: h.idx };
-      draw();
+      const t = tableau[h.col]; if (!t.length) return;
+      const o = t[h.idx];
+      if (!o.up) { if (h.idx === t.length - 1) flipTop(h.col); return; }   // flip an exposed face-down card
+      if (!validRun(h.col, h.idx)) return;
+      const cards = t.slice(h.idx).map(o => o.card);
+      if (cards.length === 1) autoMove(cards[0], { t: 'tableau', col: h.col, idx: h.idx });
+      else { const dc = bestTableau(cards[0], h.col); if (dc >= 0) doMove({ t: 'tableau', col: h.col, idx: h.idx }, { t: 'tableau', col: dc }); }
     }
   }
-  const selEq = (a, b) => a && b && a.t === b.t && a.col === b.col && a.idx === b.idx && a.f === b.f;
 
-  // ---- input ----
-  function localXY(e) { const r = cv.getBoundingClientRect(); const t = e.changedTouches ? e.changedTouches[0] : e; return [t.clientX - r.left, t.clientY - r.top]; }
-  let sx = null, sy = null, moved = false;
-  cv.addEventListener('touchstart', e => { const [x, y] = localXY(e); sx = x; sy = y; moved = false; }, { passive: true });
-  cv.addEventListener('touchmove', e => { if (sx == null) return; const [x, y] = localXY(e); if (Math.abs(x - sx) > 12 || Math.abs(y - sy) > 12) moved = true; }, { passive: true });
-  cv.addEventListener('touchend', e => { const [x, y] = localXY(e); if (!moved) onTap(x, y); sx = sy = null; });
-  cv.addEventListener('mousedown', e => { const [x, y] = localXY(e); onTap(x, y); });
+  // ---- input (pointer events: one path for touch + mouse, no synthetic double-fire) ----
+  function localXY(e) { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+  let downX = null, downY = null;
+  cv.addEventListener('pointerdown', e => { downX = e.clientX; downY = e.clientY; });
+  cv.addEventListener('pointerup', e => {
+    if (downX == null) return;
+    const far = Math.abs(e.clientX - downX) > 12 || Math.abs(e.clientY - downY) > 12;
+    downX = downY = null;
+    if (far) return;                         // a drag/scroll, not a tap
+    const [x, y] = localXY(e); onTap(x, y);
+  });
 
   undoBtn.addEventListener('click', undo);
   document.getElementById('autoBtn').addEventListener('click', autoFoundations);
