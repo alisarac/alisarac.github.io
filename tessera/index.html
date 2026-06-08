@@ -32,12 +32,15 @@
     background:rgba(14,17,22,.85);backdrop-filter:blur(3px);}
   #over h2{margin:0;font-size:30px;font-weight:900;}
   #over p{margin:0;color:var(--muted);}
+  #combo{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%) scale(.6);
+    font-weight:900;font-size:34px;color:var(--accent);opacity:0;pointer-events:none;
+    text-shadow:0 4px 24px rgba(90,209,197,.5);white-space:nowrap;}
 </style>
 </head>
 <body>
 <div id="app">
   <header>
-    <div class="title">Tessera<small>place · fill · clear</small></div>
+    <div class="title">Tessera<small>place · clear · collapse</small></div>
     <div class="scores">
       <div class="score"><div class="lab">Score</div><div class="val" id="score">0</div></div>
       <div class="score"><div class="lab">Best</div><div class="val" id="best">0</div></div>
@@ -46,6 +49,7 @@
 
   <div id="stage">
     <canvas id="cv"></canvas>
+    <div id="combo"></div>
     <div id="over">
       <h2>No room left</h2>
       <p id="overScore">Score 0</p>
@@ -54,7 +58,7 @@
   </div>
 
   <div class="bar">
-    <div class="hint">Drag all three pieces onto the board.<br>Fill a full row or column to clear it.</div>
+    <div class="hint">Drag all three pieces onto the board. Clear a row/column —<br>blocks <b>collapse</b> and can chain into more clears.</div>
     <button id="newBtn">New game</button>
   </div>
 </div>
@@ -113,7 +117,25 @@
   let score, best = +(localStorage.getItem('tessera_best') || 0), gameOver;
   let drag = null;    // {slot, shape, px, py, grabDX, grabDY}
   let flashing = [];  // cells being cleared {r,c,color,t}
+  let falling = [];   // blocks in flight after a clear {col,fromR,toR,color}
+  let fallT = 0, fallDest = new Set();
+  const comboEl = document.getElementById('combo');
   bestEl.textContent = best;
+  const easeOut = p => 1 - Math.pow(1 - p, 3);
+
+  function showCombo(text) {
+    comboEl.textContent = text;
+    comboEl.style.transition = 'none';
+    comboEl.style.opacity = '0';
+    comboEl.style.transform = 'translate(-50%,-50%) scale(.6)';
+    requestAnimationFrame(() => {
+      comboEl.style.transition = 'opacity .5s ease, transform .5s cubic-bezier(.2,1.4,.4,1)';
+      comboEl.style.opacity = '1';
+      comboEl.style.transform = 'translate(-50%,-62%) scale(1.12)';
+      setTimeout(() => { comboEl.style.opacity = '0';
+        comboEl.style.transform = 'translate(-50%,-72%) scale(1)'; }, 420);
+    });
+  }
 
   const at = (r, c) => board[r * N + c];
   const setAt = (r, c, v) => board[r * N + c] = v;
@@ -121,7 +143,7 @@
   function reset() {
     board = new Array(N * N).fill(null);
     tray = [];
-    score = 0; gameOver = false; drag = null; flashing = [];
+    score = 0; gameOver = false; drag = null; flashing = []; falling = []; fallDest = new Set();
     scoreEl.textContent = '0';
     overEl.style.display = 'none';
     refill();
@@ -143,39 +165,79 @@
     return false;
   }
 
-  function place(slot, r0, c0) {
-    const shape = tray[slot];
-    const placed = [];
-    for (const [dr, dc] of shape.cells) { setAt(r0 + dr, c0 + dc, shape.color); placed.push([r0 + dr, c0 + dc]); }
-    score += shape.cells.length;
-    tray[slot] = null;
+  const bumpBest = () => { if (score > best) { best = score; bestEl.textContent = best; localStorage.setItem('tessera_best', best); } };
 
-    // find full rows / cols
+  function findFull() {
     const fullR = [], fullC = [];
     for (let r = 0; r < N; r++) { let f = true; for (let c = 0; c < N; c++) if (!at(r, c)) { f = false; break; } if (f) fullR.push(r); }
     for (let c = 0; c < N; c++) { let f = true; for (let r = 0; r < N; r++) if (!at(r, c)) { f = false; break; } if (f) fullC.push(c); }
-    const lines = fullR.length + fullC.length;
+    return { fullR, fullC };
+  }
 
-    if (lines > 0) {
-      const cleared = new Set();
-      for (const r of fullR) for (let c = 0; c < N; c++) cleared.add(r * N + c);
-      for (const c of fullC) for (let r = 0; r < N; r++) cleared.add(r * N + c);
-      flashing = [...cleared].map(i => ({ r: (i / N) | 0, c: i % N, color: board[i], t: 0 }));
-      for (const i of cleared) board[i] = null;
-      score += lines * (lines + 1) / 2 * 10;     // 1 line=10, 2=30, 3=60...
+  // collapse: each column compacts its blocks toward the bottom.
+  // returns the new board and the list of blocks that moved (for animation).
+  function applyGravity() {
+    const nb = new Array(N * N).fill(null);
+    const falls = [];
+    for (let c = 0; c < N; c++) {
+      const col = [];
+      for (let r = 0; r < N; r++) { const v = at(r, c); if (v) col.push({ r, color: v }); }
+      const m = col.length;
+      for (let i = 0; i < m; i++) {
+        const newR = N - m + i;
+        nb[newR * N + c] = col[i].color;
+        if (newR !== col[i].r) falls.push({ col: c, fromR: col[i].r, toR: newR, color: col[i].color });
+      }
     }
+    return { nb, falls };
+  }
 
-    scoreEl.textContent = score;
-    if (score > best) { best = score; bestEl.textContent = best; localStorage.setItem('tessera_best', best); }
-
+  function place(slot, r0, c0) {
+    const shape = tray[slot];
+    for (const [dr, dc] of shape.cells) setAt(r0 + dr, c0 + dc, shape.color);
+    score += shape.cells.length;
+    scoreEl.textContent = score; bumpBest();
+    tray[slot] = null;
     if (tray.every(p => p === null)) refill();
+    chainStep(1);
+  }
 
-    // game over if no remaining piece fits anywhere
+  // one round of the cascade: clear full lines, collapse, then recurse.
+  // k = chain depth; deeper links score more, rewarding engineered collapses.
+  function chainStep(k) {
+    const { fullR, fullC } = findFull();
+    const lines = fullR.length + fullC.length;
+    if (lines === 0) { endChain(); return; }
+
+    score += lines * (lines + 1) / 2 * 10 * k;   // 1ln=10, 2ln=30...; ×k per chain depth
+    scoreEl.textContent = score; bumpBest();
+
+    const cleared = new Set();
+    for (const r of fullR) for (let c = 0; c < N; c++) cleared.add(r * N + c);
+    for (const c of fullC) for (let r = 0; r < N; r++) cleared.add(r * N + c);
+    flashing = [...cleared].map(i => ({ r: (i / N) | 0, c: i % N, color: board[i], t: 0 }));
+    for (const i of cleared) board[i] = null;
+
+    if (k >= 2) showCombo('CHAIN ×' + k);
+    else if (lines >= 2) showCombo('×' + lines);
+
+    animate(150, p => { for (const f of flashing) f.t = p; }, () => {
+      flashing = [];
+      const { nb, falls } = applyGravity();
+      board = nb;
+      if (!falls.length) { chainStep(k + 1); return; }   // nothing moved -> next scan ends it
+      falling = falls;
+      fallDest = new Set(falls.map(f => f.toR * N + f.col));
+      fallT = 0;
+      animate(150, p => { fallT = p; }, () => {
+        falling = []; fallDest = new Set(); chainStep(k + 1);
+      });
+    });
+  }
+
+  function endChain() {
     if (tray.every(p => p === null || !anyFit(p))) endGame();
-
-    animate(lines > 0 ? 220 : 90, p => {
-      for (const f of flashing) f.t = p;
-    }, () => { flashing = []; draw(); });
+    draw();
   }
 
   function endGame() {
@@ -238,7 +300,8 @@
       const [x, y] = cellXY(r, c);
       ctx.fillStyle = '#222836'; rr(x, y, cell, cell, cell * 0.18); ctx.fill();
       const col = at(r, c);
-      if (col) block(x, y, cell, col);
+      // skip blocks currently in flight; the falling overlay draws them instead
+      if (col && !(falling.length && fallDest.has(r * N + c))) block(x, y, cell, col);
     }
 
     // clearing flash
@@ -247,6 +310,16 @@
       const s = 1 + 0.25 * Math.sin(f.t * Math.PI);
       const cs = cell * s, off = (cell - cs) / 2;
       block(x + off, y + off, cs, '#ffffff', 1 - f.t);
+    }
+
+    // falling blocks (collapse animation)
+    if (falling.length) {
+      const e = easeOut(fallT);
+      for (const f of falling) {
+        const [x, y0] = cellXY(f.fromR, f.col);
+        const [, y1] = cellXY(f.toR, f.col);
+        block(x, y0 + (y1 - y0) * e, cell, f.color);
+      }
     }
 
     // drag preview on board (snapped)
