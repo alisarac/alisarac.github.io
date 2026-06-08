@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e1116">
+<title>Beam</title>
+<style>
+  :root{ --bg:#0e1116; --panel:#1a1f29; --cell:#222836; --grid:#2b3242; --ink:#e8ecf4; --muted:#7c879c; --accent:#5ad1c5; --beam:#ffd36a; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+    overscroll-behavior:none;touch-action:none;user-select:none;}
+  #app{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    padding:16px env(safe-area-inset-right) calc(16px + env(safe-area-inset-bottom)) env(safe-area-inset-left);}
+  header{width:100%;max-width:480px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;}
+  .title{font-size:28px;font-weight:800;letter-spacing:.5px;}
+  .title small{display:block;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+  .scores{display:flex;gap:8px;}
+  .score{background:var(--panel);border-radius:12px;padding:8px 14px;text-align:center;min-width:64px;}
+  .score .lab{font-size:10px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;}
+  .score .val{font-size:22px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums;}
+  #stage{position:relative;width:100%;max-width:480px;aspect-ratio:1/1;}
+  canvas{width:100%;height:100%;display:block;border-radius:14px;background:var(--panel);}
+  .bar{width:100%;max-width:480px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .hint{font-size:12px;color:var(--muted);line-height:1.4;}
+  .btns{display:flex;gap:8px;}
+  button{background:var(--cell);color:var(--ink);border:0;border-radius:12px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;}
+  button:active{transform:scale(.97);}
+  #won{position:absolute;inset:0;border-radius:14px;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    background:rgba(14,17,22,.7);backdrop-filter:blur(2px);}
+  #won h2{margin:0;font-size:34px;font-weight:900;color:var(--accent);text-shadow:0 4px 30px rgba(90,209,197,.5);}
+  #won p{margin:0;color:var(--muted);}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="title">Beam<small>bend · light · every target</small></div>
+    <div class="scores">
+      <div class="score"><div class="lab">Level</div><div class="val" id="level">1</div></div>
+      <div class="score"><div class="lab">Best</div><div class="val" id="best">1</div></div>
+    </div>
+  </header>
+
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="won"><h2>Solved!</h2><p id="wonSub">Next level…</p></div>
+  </div>
+
+  <div class="bar">
+    <div class="hint">Tap a cell to place a mirror; tap again to flip <b>╱ ╲</b>, again to clear.<br>Route the beam through every target ◎.</div>
+    <div class="btns">
+      <button id="mirrorsBtn">Mirrors 0/0</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ---------- beam core (validated separately) ----------
+  const reflect = (d, m) => m === '/' ? [-d[1], -d[0]] : [d[1], d[0]];
+
+  function traceBeam(G, em, mirrors) {
+    const inB = (r, c) => r >= 0 && c >= 0 && r < G && c < G;
+    let r = em.r, c = em.c, d = em.dir.slice();
+    const path = [], seen = new Set();
+    let guard = 0;
+    while (inB(r, c) && guard++ < G * G * 4) {
+      const idx = r * G + c;
+      path.push(idx);
+      const m = mirrors.get(idx);
+      if (m) d = reflect(d, m);
+      const st = idx + ',' + d[0] + ',' + d[1];
+      if (seen.has(st)) break;
+      seen.add(st);
+      r += d[0]; c += d[1];
+    }
+    return { path, exitDir: d };
+  }
+
+  const ri = n => (Math.random() * n) | 0;
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = ri(i + 1);[a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+  function tryGen(G, turnsWanted, targetCount) {
+    const inB = (r, c) => r >= 0 && c >= 0 && r < G && c < G;
+    const side = ri(4);
+    let r, c, dir;
+    if (side === 0) { r = 0; c = ri(G); dir = [1, 0]; }
+    else if (side === 1) { r = G - 1; c = ri(G); dir = [-1, 0]; }
+    else if (side === 2) { c = 0; r = ri(G); dir = [0, 1]; }
+    else { c = G - 1; r = ri(G); dir = [0, -1]; }
+    const em = { r, c, dir }, emIdx = r * G + c;
+
+    const mirrors = new Map();
+    let d = dir.slice(), turns = 0, sinceTurn = 0, guard = 0, untilTurn = 1 + ri(3), cr = r, cc = c;
+    while (guard++ < 500) {
+      if (!inB(cr, cc)) break;
+      const idx = cr * G + cc;
+      const np = [cr + d[0], cc + d[1]];
+      const mustTurn = !inB(np[0], np[1]) && turns < turnsWanted;
+      const wantTurn = sinceTurn >= untilTurn && turns < turnsWanted;
+      if ((mustTurn || wantTurn) && !mirrors.has(idx) && idx !== emIdx) {
+        for (const m of shuffle(['/', '\\'])) {
+          const nd = reflect(d, m);
+          if (inB(cr + nd[0], cc + nd[1])) { mirrors.set(idx, m); d = nd; turns++; sinceTurn = -1; untilTurn = 1 + ri(3); break; }
+        }
+      }
+      sinceTurn++; cr += d[0]; cc += d[1];
+    }
+
+    const { path } = traceBeam(G, em, mirrors);
+    const cand = path.filter(i => i !== emIdx && !mirrors.has(i));
+    if (cand.length < targetCount) return null;
+    const targets = [];
+    for (let k = 0; k < targetCount; k++) targets.push(cand[Math.floor((k + 1) * cand.length / (targetCount + 1))]);
+    const uniq = [...new Set(targets)];
+    if (uniq.length < targetCount) return null;
+
+    const cov = new Set(path);
+    if (!uniq.every(t => cov.has(t))) return null;
+    const bare = new Set(traceBeam(G, em, new Map()).path);
+    if (uniq.every(t => bare.has(t))) return null;
+    if (turns < Math.min(2, turnsWanted)) return null;
+    return { G, em, targets: uniq, budget: mirrors.size };
+  }
+
+  function genLevel(level) {
+    const G = 7 + Math.min(3, Math.floor(level / 5));
+    const turnsWanted = Math.min(2 + Math.floor(level / 2), G);
+    const targetCount = Math.min(2 + Math.floor(level / 3), 6);
+    for (let a = 0; a < 400; a++) { const x = tryGen(G, turnsWanted, targetCount); if (x) return x; }
+    return tryGen(7, 2, 2) || { G: 7, em: { r: 0, c: 3, dir: [1, 0] }, targets: [3 * 7 + 3], budget: 1 };
+  }
+
+  // ---------- DOM ----------
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  const levelEl = document.getElementById('level'), bestEl = document.getElementById('best');
+  const mirrorsBtn = document.getElementById('mirrorsBtn'), wonEl = document.getElementById('won'), wonSub = document.getElementById('wonSub');
+  const stage = document.getElementById('stage');
+
+  // ---------- state ----------
+  let level = 1, best = +(localStorage.getItem('beam_best') || 1);
+  let G, em, targets, budget, mirrors, beamProg = 1, solved = false;
+  bestEl.textContent = best;
+
+  let cell = 0, px = 0;
+  function layout() {
+    const w = stage.clientWidth || 480;
+    px = w; cell = w / G;
+    const dpr = window.devicePixelRatio || 1;
+    cv.width = w * dpr; cv.height = w * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function loadLevel(n) {
+    const L = genLevel(n);
+    G = L.G; em = L.em; targets = L.targets; budget = L.budget;
+    mirrors = new Map(); solved = false; beamProg = 1;
+    levelEl.textContent = n;
+    wonEl.style.display = 'none';
+    layout(); updateMirrorBtn(); draw();
+  }
+
+  const updateMirrorBtn = () => mirrorsBtn.textContent = `Mirrors ${mirrors.size}/${budget}`;
+  const center = idx => [((idx % G) + 0.5) * cell, ((idx / G | 0) + 0.5) * cell];
+
+  function recompute(animateBeam) {
+    const { path, exitDir } = traceBeam(G, em, mirrors);
+    const lit = new Set(path);
+    const allLit = targets.every(t => lit.has(t));
+    if (animateBeam) { beamProg = 0; animate(240, p => beamProg = p, () => { beamProg = 1; draw(); }); }
+    if (allLit && !solved) win();
+    return { path, exitDir, lit };
+  }
+
+  function win() {
+    solved = true;
+    best = Math.max(best, level + 1);
+    bestEl.textContent = best; localStorage.setItem('beam_best', best);
+    wonEl.style.display = 'flex';
+    wonSub.textContent = 'Next level…';
+    setTimeout(() => { level += 1; loadLevel(level); }, 1100);
+  }
+
+  // ---------- input ----------
+  function tap(x, y) {
+    if (solved) return;
+    const c = Math.floor(x / cell), r = Math.floor(y / cell);
+    if (r < 0 || c < 0 || r >= G || c >= G) return;
+    const idx = r * G + c;
+    if (idx === em.r * G + em.c) return;            // can't cover the emitter
+    const cur = mirrors.get(idx);
+    if (!cur) { if (mirrors.size >= budget) { flashBudget(); return; } mirrors.set(idx, '/'); }
+    else if (cur === '/') mirrors.set(idx, '\\');
+    else mirrors.delete(idx);
+    updateMirrorBtn();
+    recompute(true);
+  }
+  let flashT = 0;
+  function flashBudget() { flashT = 1; animate(300, p => flashT = 1 - p, () => { flashT = 0; draw(); }); }
+
+  function localXY(e) {
+    const rect = cv.getBoundingClientRect();
+    const t = e.changedTouches ? e.changedTouches[0] : e;
+    return [t.clientX - rect.left, t.clientY - rect.top];
+  }
+  cv.addEventListener('touchend', e => { e.preventDefault(); const [x, y] = localXY(e); tap(x, y); }, { passive: false });
+  cv.addEventListener('mousedown', e => { const [x, y] = localXY(e); tap(x, y); });
+
+  document.getElementById('resetBtn').addEventListener('click', () => { if (!solved) { mirrors.clear(); updateMirrorBtn(); recompute(true); } });
+  document.getElementById('mirrorsBtn').addEventListener('click', () => { if (!solved) { mirrors.clear(); updateMirrorBtn(); recompute(true); } });
+  window.addEventListener('resize', () => { layout(); draw(); });
+
+  // ---------- animation ----------
+  function animate(dur, step, done) {
+    const t0 = performance.now();
+    (function f(now) { let p = (now - t0) / dur; if (p > 1) p = 1; step(p); draw(); p < 1 ? requestAnimationFrame(f) : done && done(); })(performance.now());
+  }
+
+  // ---------- render ----------
+  function draw() {
+    if (!cell) return;
+    ctx.clearRect(0, 0, px, px);
+    const { path, exitDir, lit } = traceBeam2();
+
+    // grid
+    ctx.strokeStyle = '#2b3242'; ctx.lineWidth = 1;
+    for (let i = 1; i < G; i++) {
+      ctx.beginPath(); ctx.moveTo(i * cell, 0); ctx.lineTo(i * cell, px); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, i * cell); ctx.lineTo(px, i * cell); ctx.stroke();
+    }
+
+    // emitter (arrow on the edge pointing inward)
+    drawEmitter();
+
+    // mirrors
+    ctx.lineCap = 'round';
+    for (const [idx, m] of mirrors) {
+      const [cx, cy] = center(idx); const k = cell * 0.30;
+      ctx.strokeStyle = '#e8ecf4'; ctx.lineWidth = Math.max(3, cell * 0.10);
+      ctx.beginPath();
+      if (m === '/') { ctx.moveTo(cx - k, cy + k); ctx.lineTo(cx + k, cy - k); }
+      else { ctx.moveTo(cx - k, cy - k); ctx.lineTo(cx + k, cy + k); }
+      ctx.stroke();
+    }
+
+    // targets
+    for (const t of targets) {
+      const [cx, cy] = center(t); const on = lit.has(t);
+      ctx.beginPath(); ctx.arc(cx, cy, cell * 0.26, 0, Math.PI * 2);
+      if (on) { ctx.fillStyle = '#5ad1c5'; ctx.shadowColor = '#5ad1c5'; ctx.shadowBlur = 18; ctx.fill(); ctx.shadowBlur = 0;
+        ctx.fillStyle = '#0e1116'; ctx.beginPath(); ctx.arc(cx, cy, cell * 0.10, 0, Math.PI * 2); ctx.fill(); }
+      else { ctx.lineWidth = Math.max(2, cell * 0.06); ctx.strokeStyle = '#7c879c'; ctx.stroke(); }
+    }
+
+    // beam
+    drawBeam(path, exitDir);
+
+    // budget flash (red tint when over budget)
+    if (flashT > 0) { ctx.fillStyle = `rgba(194,79,63,${0.25 * flashT})`; ctx.fillRect(0, 0, px, px); }
+  }
+
+  // wrap so draw() and recompute share one trace, but keep render self-contained
+  function traceBeam2() {
+    const { path, exitDir } = traceBeam(G, em, mirrors);
+    return { path, exitDir, lit: new Set(path) };
+  }
+
+  function drawEmitter() {
+    const [cx, cy] = center(em.r * G + em.c);
+    const d = em.dir, k = cell * 0.5;
+    const bx = cx - d[1] * k, by = cy - d[0] * k;       // point on the board edge
+    const ox = bx - d[1] * cell * 0.22, oy = by - d[0] * cell * 0.22; // just outside
+    ctx.fillStyle = '#ffd36a';
+    ctx.beginPath();
+    const px1 = d[1], py1 = d[0];        // forward
+    const sx = -d[0], sy = -d[1];        // side (perpendicular)
+    const tip = [bx + px1 * cell * 0.16, by + py1 * cell * 0.16];
+    const a = [ox + sx * cell * 0.16, oy + sy * cell * 0.16];
+    const b = [ox - sx * cell * 0.16, oy - sy * cell * 0.16];
+    ctx.moveTo(tip[0], tip[1]); ctx.lineTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.closePath(); ctx.fill();
+  }
+
+  function drawBeam(path, exitDir) {
+    if (!path.length) return;
+    // build polyline: edge entry -> cell centers -> edge exit stub
+    const pts = [];
+    const [c0x, c0y] = center(path[0]);
+    pts.push([c0x - em.dir[1] * cell * 0.5, c0y - em.dir[0] * cell * 0.5]);
+    for (const idx of path) pts.push(center(idx));
+    const [lx, ly] = center(path[path.length - 1]);
+    pts.push([lx + exitDir[1] * cell * 0.5, ly + exitDir[0] * cell * 0.5]);
+
+    // cumulative lengths for progress truncation
+    const segLen = [], total = { v: 0 };
+    for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); segLen.push(l); total.v += l; }
+    let drawLen = total.v * beamProg;
+
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    const stroke = (w, color, blur) => {
+      ctx.strokeStyle = color; ctx.lineWidth = w; ctx.shadowColor = color; ctx.shadowBlur = blur;
+      ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+      let rem = drawLen;
+      for (let i = 1; i < pts.length; i++) {
+        const l = segLen[i - 1];
+        if (rem >= l) { ctx.lineTo(pts[i][0], pts[i][1]); rem -= l; }
+        else { const f = rem / l; ctx.lineTo(pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * f, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * f); break; }
+      }
+      ctx.stroke(); ctx.shadowBlur = 0;
+    };
+    stroke(cell * 0.16, 'rgba(255,211,106,0.25)', 16);
+    stroke(Math.max(2.5, cell * 0.07), '#ffd36a', 10);
+  }
+
+  // ---------- boot ----------
+  loadLevel(level);
+  window.addEventListener('load', () => { layout(); draw(); });
+})();
+</script>
+</body>
+</html>
