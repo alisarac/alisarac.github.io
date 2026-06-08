@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e1116">
+<title>Solitaire</title>
+<style>
+  :root{ --bg:#0e1116; --panel:#1a1f29; --slot:#1f2532; --ink:#e8ecf4; --muted:#7c879c; --accent:#5ad1c5;
+         --card:#f3f0e7; --cardEdge:#cfc9b8; --red:#c2413f; --black:#222836; --back:#39507a; --back2:#2a3c5e; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+    overscroll-behavior:none;touch-action:none;user-select:none;}
+  #app{min-height:100%;display:flex;flex-direction:column;align-items:center;gap:12px;
+    padding:14px env(safe-area-inset-right) calc(14px + env(safe-area-inset-bottom)) env(safe-area-inset-left);}
+  header{width:100%;max-width:520px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;}
+  .title{font-size:26px;font-weight:800;letter-spacing:.5px;}
+  .title small{display:block;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+  .scores{display:flex;gap:8px;}
+  .score{background:var(--panel);border-radius:12px;padding:7px 12px;text-align:center;min-width:56px;}
+  .score .lab{font-size:10px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;}
+  .score .val{font-size:20px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums;}
+  #stage{position:relative;width:100%;max-width:520px;}
+  canvas{width:100%;display:block;}
+  .bar{width:100%;max-width:520px;display:flex;align-items:center;justify-content:flex-end;gap:8px;}
+  button{background:var(--slot);color:var(--ink);border:0;border-radius:12px;padding:9px 14px;font-size:14px;font-weight:700;cursor:pointer;}
+  button:active{transform:scale(.97);}
+  button:disabled{opacity:.4;}
+  #won{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    background:rgba(14,17,22,.78);backdrop-filter:blur(3px);border-radius:12px;}
+  #won h2{margin:0;font-size:34px;font-weight:900;color:var(--accent);text-shadow:0 4px 30px rgba(90,209,197,.5);}
+  #won p{margin:0;color:var(--muted);}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="title">Solitaire<small>klondike · draw one</small></div>
+    <div class="scores">
+      <div class="score"><div class="lab">Moves</div><div class="val" id="moves">0</div></div>
+      <div class="score"><div class="lab">Won</div><div class="val" id="wins">0</div></div>
+    </div>
+  </header>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="won"><h2>You win!</h2><p id="wonSub"></p></div>
+  </div>
+  <div class="bar">
+    <button id="undoBtn">Undo</button>
+    <button id="autoBtn">Auto</button>
+    <button id="newBtn">New game</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  // suit: 0=spades,1=hearts,2=diamonds,3=clubs ; red = 1,2
+  const SUIT = ['♠', '♥', '♦', '♣'];
+  const RANK = [, 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+  const isRed = s => s === 1 || s === 2;
+  const ri = n => (Math.random() * n) | 0;
+
+  // ---- DOM ----
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  const movesEl = document.getElementById('moves'), winsEl = document.getElementById('wins');
+  const undoBtn = document.getElementById('undoBtn'), wonEl = document.getElementById('won'), wonSub = document.getElementById('wonSub');
+  const stage = document.getElementById('stage');
+
+  // ---- state ----
+  let stock, waste, foundations, tableau;   // piles
+  let moves, sel, history, won;
+  let wins = +(localStorage.getItem('solitaire_wins') || 0);
+  winsEl.textContent = wins;
+
+  function deal() {
+    const deck = [];
+    for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) deck.push({ r, s });
+    for (let i = deck.length - 1; i > 0; i--) { const j = ri(i + 1);[deck[i], deck[j]] = [deck[j], deck[i]]; }
+    tableau = [[], [], [], [], [], [], []];
+    for (let c = 0; c < 7; c++) for (let k = 0; k <= c; k++) tableau[c].push({ card: deck.pop(), up: k === c });
+    stock = deck; waste = []; foundations = [[], [], [], []];
+    moves = 0; sel = null; history = []; won = false;
+    movesEl.textContent = 0; wonEl.style.display = 'none'; undoBtn.disabled = true;
+    draw();
+  }
+
+  const snapshot = () => JSON.stringify({ stock, waste, foundations, tableau });
+  const restore = s => { const o = JSON.parse(s); stock = o.stock; waste = o.waste; foundations = o.foundations; tableau = o.tableau; };
+  function pushHistory() { history.push(snapshot()); if (history.length > 400) history.shift(); undoBtn.disabled = false; }
+  function undo() { if (!history.length || won) return; restore(history.pop()); moves = Math.max(0, moves - 1); movesEl.textContent = moves; undoBtn.disabled = history.length === 0; sel = null; draw(); }
+
+  // ---- rules ----
+  const tabTop = c => tableau[c][tableau[c].length - 1];
+  function validRun(col, idx) {
+    const t = tableau[col];
+    for (let i = idx; i < t.length; i++) { if (!t[i].up) return false; if (i > idx) { const a = t[i - 1].card, b = t[i].card; if (a.r !== b.r + 1 || isRed(a.s) === isRed(b.s)) return false; } }
+    return true;
+  }
+  function canToTableau(card, col) {
+    const t = tableau[col];
+    if (!t.length) return card.r === 13;
+    const top = t[t.length - 1]; if (!top.up) return false;
+    return card.r === top.card.r - 1 && isRed(card.s) !== isRed(top.card.s);
+  }
+  function canToFoundation(card, f) {
+    const p = foundations[f];
+    if (!p.length) return card.r === 1;
+    const top = p[p.length - 1];
+    return card.s === top.s && card.r === top.r + 1;
+  }
+
+  // selected cards (bottom-first) from current selection
+  function selCards() {
+    if (!sel) return [];
+    if (sel.t === 'waste') return [waste[waste.length - 1]];
+    if (sel.t === 'foundation') { const p = foundations[sel.f]; return [p[p.length - 1]]; }
+    if (sel.t === 'tableau') return tableau[sel.col].slice(sel.idx).map(o => o.card);
+    return [];
+  }
+  function removeSel() {
+    if (sel.t === 'waste') waste.pop();
+    else if (sel.t === 'foundation') foundations[sel.f].pop();
+    else if (sel.t === 'tableau') { tableau[sel.col].splice(sel.idx); const nt = tabTop(sel.col); if (nt && !nt.up) nt.up = true; }
+  }
+
+  function tryMoveTo(dest) {
+    const cards = selCards(); if (!cards.length) return false;
+    if (dest.t === 'foundation') {
+      if (cards.length !== 1) return false;
+      if (!canToFoundation(cards[0], dest.f)) return false;
+      const c = cards[0]; pushHistory(); removeSel(); foundations[dest.f].push(c); afterMove(); return true;
+    }
+    if (dest.t === 'tableau') {
+      if (!canToTableau(cards[0], dest.col)) return false;
+      pushHistory(); removeSel();
+      for (const c of cards) tableau[dest.col].push({ card: c, up: true });
+      afterMove(); return true;
+    }
+    return false;
+  }
+  function afterMove() { moves++; movesEl.textContent = moves; sel = null; checkWin(); draw(); }
+
+  function drawFromStock() {
+    pushHistory();
+    if (stock.length) { waste.push(stock.pop()); }
+    else if (waste.length) { while (waste.length) stock.push(waste.pop()); }
+    else { history.pop(); undoBtn.disabled = history.length === 0; return; }
+    moves++; movesEl.textContent = moves; sel = null; draw();
+  }
+
+  function autoFoundations() {
+    let any = false, moved = true;
+    while (moved) {
+      moved = false;
+      const sources = [];
+      if (waste.length) sources.push({ get: () => waste[waste.length - 1], pop: () => waste.pop() });
+      for (let c = 0; c < 7; c++) if (tableau[c].length) { const cc = c; sources.push({ get: () => tabTop(cc).card, pop: () => { tableau[cc].pop(); const nt = tabTop(cc); if (nt && !nt.up) nt.up = true; } }); }
+      for (const src of sources) {
+        const card = src.get();
+        for (let f = 0; f < 4; f++) if (canToFoundation(card, f)) { if (!any) pushHistory(); src.pop(); foundations[f].push(card); moved = true; any = true; moves++; break; }
+        if (moved) break;
+      }
+    }
+    if (any) { movesEl.textContent = moves; sel = null; checkWin(); draw(); }
+  }
+
+  function checkWin() {
+    if (foundations.reduce((a, p) => a + p.length, 0) === 52) {
+      won = true; wins++; winsEl.textContent = wins; localStorage.setItem('solitaire_wins', wins);
+      wonSub.textContent = `in ${moves} moves`; wonEl.style.display = 'flex';
+    }
+  }
+
+  // ---- layout ----
+  let M = {};
+  function metrics() {
+    const W = stage.clientWidth || 520;
+    const m = Math.round(W * 0.018);
+    const cardW = (W - m * 8) / 7, cardH = cardW * 1.42;
+    const topY = m, tabY = topY + cardH + Math.round(cardH * 0.35);
+    const colX = c => m + c * (cardW + m);
+    const downOff = cardH * 0.17;
+    // per-column face-up offset, compressed if a column is long
+    const capH = cardH * 6.2;
+    const upOff = c => {
+      const t = tableau[c]; const ups = t.filter(o => o.up).length;
+      const downs = t.length - ups;
+      const def = cardH * 0.30;
+      const need = cardH + downs * downOff + Math.max(0, ups - 1) * def;
+      if (need <= capH) return def;
+      return Math.max(cardH * 0.12, (capH - cardH - downs * downOff) / Math.max(1, ups - 1));
+    };
+    let maxBottom = tabY + cardH;
+    for (let c = 0; c < 7; c++) {
+      const t = tableau[c]; let y = tabY; const uo = upOff(c);
+      for (let i = 0; i < t.length; i++) { if (i) y += t[i].up && t[i - 1].up ? uo : downOff; }
+      maxBottom = Math.max(maxBottom, y + cardH);
+    }
+    M = { W, m, cardW, cardH, topY, tabY, colX, downOff, upOff, height: Math.ceil(maxBottom + m) };
+  }
+  function applySize() {
+    const dpr = window.devicePixelRatio || 1;
+    cv.style.height = M.height + 'px';
+    cv.width = M.W * dpr; cv.height = M.height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  // pixel position of card i in column c
+  function tabCardY(c, i) {
+    let y = M.tabY; const uo = M.upOff(c); const t = tableau[c];
+    for (let k = 1; k <= i; k++) y += t[k].up && t[k - 1].up ? uo : M.downOff;
+    return y;
+  }
+
+  // ---- render ----
+  function rr(x, y, w, h, rad) { ctx.beginPath(); ctx.moveTo(x + rad, y); ctx.arcTo(x + w, y, x + w, y + h, rad); ctx.arcTo(x + w, y + h, x, y + h, rad); ctx.arcTo(x, y + h, x, y, rad); ctx.arcTo(x, y, x + w, y, rad); ctx.closePath(); }
+  function slot(x, y, glyph) {
+    ctx.fillStyle = '#1f2532'; rr(x, y, M.cardW, M.cardH, M.cardW * 0.12); ctx.fill();
+    if (glyph) { ctx.fillStyle = '#2c3343'; ctx.font = `${M.cardH * 0.42}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(glyph, x + M.cardW / 2, y + M.cardH / 2); }
+  }
+  function cardFace(x, y, card, selected) {
+    rr(x, y, M.cardW, M.cardH, M.cardW * 0.12);
+    ctx.fillStyle = '#f3f0e7'; ctx.fill();
+    ctx.lineWidth = selected ? Math.max(2.5, M.cardW * 0.06) : 1;
+    ctx.strokeStyle = selected ? '#5ad1c5' : '#cfc9b8'; ctx.stroke();
+    const col = isRed(card.s) ? '#c2413f' : '#222836';
+    ctx.fillStyle = col; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.font = `800 ${M.cardH * 0.22}px system-ui`;
+    ctx.fillText(RANK[card.r], x + M.cardW * 0.10, y + M.cardH * 0.07);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `${M.cardH * 0.34}px system-ui`;
+    ctx.fillText(SUIT[card.s], x + M.cardW / 2, y + M.cardH * 0.58);
+  }
+  function cardBack(x, y) {
+    rr(x, y, M.cardW, M.cardH, M.cardW * 0.12); ctx.fillStyle = '#39507a'; ctx.fill();
+    ctx.fillStyle = '#2a3c5e'; rr(x + M.cardW * 0.14, y + M.cardH * 0.10, M.cardW * 0.72, M.cardH * 0.80, M.cardW * 0.08); ctx.fill();
+  }
+
+  function draw() {
+    metrics();
+    if (cv.height !== Math.round(M.height * (window.devicePixelRatio || 1))) applySize();
+    ctx.clearRect(0, 0, M.W, M.height);
+
+    // stock
+    if (stock.length) cardBack(M.colX(0), M.topY); else slot(M.colX(0), M.topY, '↻');
+    // waste
+    if (waste.length) cardFace(M.colX(1), M.topY, waste[waste.length - 1], sel && sel.t === 'waste'); else slot(M.colX(1), M.topY);
+    // foundations
+    for (let f = 0; f < 4; f++) {
+      const x = M.colX(3 + f), p = foundations[f];
+      if (p.length) cardFace(x, M.topY, p[p.length - 1], sel && sel.t === 'foundation' && sel.f === f); else slot(x, M.topY, SUIT[f]);
+    }
+    // tableau
+    for (let c = 0; c < 7; c++) {
+      const t = tableau[c], x = M.colX(c);
+      if (!t.length) { slot(x, M.tabY); continue; }
+      for (let i = 0; i < t.length; i++) {
+        const y = tabCardY(c, i);
+        const isSel = sel && sel.t === 'tableau' && sel.col === c && i >= sel.idx;
+        if (t[i].up) cardFace(x, y, t[i].card, isSel); else cardBack(x, y);
+      }
+    }
+  }
+
+  // ---- hit testing ----
+  function hit(x, y) {
+    const within = (px, py) => x >= px && x <= px + M.cardW && y >= py && y <= py + M.cardH;
+    if (within(M.colX(0), M.topY)) return { t: 'stock' };
+    if (within(M.colX(1), M.topY)) return { t: 'waste' };
+    for (let f = 0; f < 4; f++) if (within(M.colX(3 + f), M.topY)) return { t: 'foundation', f };
+    for (let c = 0; c < 7; c++) {
+      const t = tableau[c], px = M.colX(c);
+      if (x < px || x > px + M.cardW) continue;
+      if (!t.length) { if (within(px, M.tabY)) return { t: 'tableau', col: c, idx: 0, empty: true }; continue; }
+      for (let i = t.length - 1; i >= 0; i--) {
+        const cy = tabCardY(c, i);
+        const h = i === t.length - 1 ? M.cardH : (tabCardY(c, i + 1) - cy);
+        if (y >= cy && y <= cy + h) return { t: 'tableau', col: c, idx: i };
+      }
+    }
+    return null;
+  }
+
+  function onTap(x, y) {
+    if (won) return;
+    const h = hit(x, y);
+    if (!h) { sel = null; draw(); return; }
+    if (h.t === 'stock') { drawFromStock(); return; }
+
+    // with an active selection, treat tap as destination
+    if (sel) {
+      // tapping a tableau pile/card -> destination column
+      if (h.t === 'tableau') { if (tryMoveTo({ t: 'tableau', col: h.col })) return; }
+      if (h.t === 'foundation') { if (tryMoveTo({ t: 'foundation', f: h.f })) return; }
+      // otherwise fall through to (re)selection
+    }
+
+    // selection logic
+    if (h.t === 'waste') { if (!waste.length) { sel = null; draw(); return; } sel = selEq(sel, { t: 'waste' }) ? null : { t: 'waste' }; draw(); return; }
+    if (h.t === 'foundation') { const p = foundations[h.f]; if (!p.length) { sel = null; draw(); return; } sel = selEq(sel, { t: 'foundation', f: h.f }) ? null : { t: 'foundation', f: h.f }; draw(); return; }
+    if (h.t === 'tableau') {
+      if (h.empty) { sel = null; draw(); return; }
+      const o = tableau[h.col][h.idx];
+      if (!o.up) { // tap a face-down top to flip
+        if (h.idx === tableau[h.col].length - 1) { pushHistory(); o.up = true; moves++; movesEl.textContent = moves; sel = null; draw(); }
+        else { sel = null; draw(); }
+        return;
+      }
+      if (!validRun(h.col, h.idx)) { sel = null; draw(); return; }
+      sel = selEq(sel, { t: 'tableau', col: h.col, idx: h.idx }) ? null : { t: 'tableau', col: h.col, idx: h.idx };
+      draw();
+    }
+  }
+  const selEq = (a, b) => a && b && a.t === b.t && a.col === b.col && a.idx === b.idx && a.f === b.f;
+
+  // ---- input ----
+  function localXY(e) { const r = cv.getBoundingClientRect(); const t = e.changedTouches ? e.changedTouches[0] : e; return [t.clientX - r.left, t.clientY - r.top]; }
+  let sx = null, sy = null, moved = false;
+  cv.addEventListener('touchstart', e => { const [x, y] = localXY(e); sx = x; sy = y; moved = false; }, { passive: true });
+  cv.addEventListener('touchmove', e => { if (sx == null) return; const [x, y] = localXY(e); if (Math.abs(x - sx) > 12 || Math.abs(y - sy) > 12) moved = true; }, { passive: true });
+  cv.addEventListener('touchend', e => { const [x, y] = localXY(e); if (!moved) onTap(x, y); sx = sy = null; });
+  cv.addEventListener('mousedown', e => { const [x, y] = localXY(e); onTap(x, y); });
+
+  undoBtn.addEventListener('click', undo);
+  document.getElementById('autoBtn').addEventListener('click', autoFoundations);
+  document.getElementById('newBtn').addEventListener('click', deal);
+  window.addEventListener('resize', draw);
+
+  // ---- boot ----
+  deal();
+  window.addEventListener('load', draw);
+})();
+</script>
+</body>
+</html>
