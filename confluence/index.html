@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e1116">
+<title>Confluence</title>
+<style>
+  :root{
+    --bg:#0e1116;
+    --panel:#1a1f29;
+    --cell:#222836;
+    --ink:#e8ecf4;
+    --muted:#7c879c;
+    --accent:#5ad1c5;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+    overscroll-behavior:none;touch-action:none;user-select:none;}
+  #app{min-height:100%;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:14px;padding:16px env(safe-area-inset-right) calc(16px + env(safe-area-inset-bottom)) env(safe-area-inset-left);}
+  header{width:100%;max-width:520px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;}
+  .title{font-size:28px;font-weight:800;letter-spacing:.5px;}
+  .title small{display:block;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+  .scores{display:flex;gap:8px;}
+  .score{background:var(--panel);border-radius:12px;padding:8px 14px;text-align:center;min-width:78px;}
+  .score .lab{font-size:10px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;}
+  .score .val{font-size:22px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums;}
+  #boardWrap{position:relative;width:100%;max-width:520px;aspect-ratio:1/1;
+    background:var(--panel);border-radius:18px;padding:var(--pad);}
+  canvas{width:100%;height:100%;display:block;border-radius:12px;}
+  .bar{width:100%;max-width:520px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .hint{font-size:12px;color:var(--muted);line-height:1.4;}
+  button{background:var(--cell);color:var(--ink);border:0;border-radius:12px;
+    padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;}
+  button:active{transform:scale(.97);}
+  #combo{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%) scale(.6);
+    font-weight:900;font-size:38px;color:var(--accent);opacity:0;pointer-events:none;
+    text-shadow:0 4px 24px rgba(90,209,197,.5);transition:none;white-space:nowrap;}
+  #over{position:absolute;inset:var(--pad);border-radius:12px;display:none;
+    flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    background:rgba(14,17,22,.82);backdrop-filter:blur(3px);}
+  #over h2{margin:0;font-size:30px;font-weight:900;}
+  #over p{margin:0;color:var(--muted);}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="title">Confluence<small>swipe · chain · cascade</small></div>
+    <div class="scores">
+      <div class="score"><div class="lab">Score</div><div class="val" id="score">0</div></div>
+      <div class="score"><div class="lab">Best</div><div class="val" id="best">0</div></div>
+    </div>
+  </header>
+
+  <div id="boardWrap">
+    <canvas id="cv"></canvas>
+    <div id="combo"></div>
+    <div id="over">
+      <h2>No moves left</h2>
+      <p id="overScore">Score 0</p>
+      <button id="againBtn">Play again</button>
+    </div>
+  </div>
+
+  <div class="bar">
+    <div class="hint">Equal tiles merge — and merges <b>chain</b>.<br>Build cascades for big combos.</div>
+    <button id="newBtn">New game</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const SIZE = 5;
+  const GAP_RATIO = 0.035;          // gap as fraction of board
+  const SLIDE_MS = 110;             // slide animation duration
+  const POP_MS = 150;               // merge pop duration
+  const SPAWN_MS = 140;
+
+  // ---- DOM ----
+  const wrap = document.getElementById('boardWrap');
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+  const comboEl = document.getElementById('combo');
+  const overEl = document.getElementById('over');
+  const overScoreEl = document.getElementById('overScore');
+
+  // board padding driven by css var so canvas insets match #over overlay
+  wrap.style.setProperty('--pad', '10px');
+
+  // ---- colors per level (level 1 shows "2") ----
+  const COLORS = [
+    null,
+    '#3a4a63', '#3f6f9e', '#3f9e8a', '#56b85a', '#9ec23f',
+    '#c2a83f', '#c2783f', '#c24f3f', '#b83f74', '#8a3fc2',
+    '#5a4fd1', '#5ad1c5', '#e8ecf4'
+  ];
+  const colorFor = l => COLORS[Math.min(l, COLORS.length - 1)] || '#e8ecf4';
+  const valueText = l => String(2 ** l);
+
+  // ---- state ----
+  let grid;            // SIZE*SIZE array of tile|null
+  let tiles;           // live tile list for rendering
+  let score = 0;
+  let best = +(localStorage.getItem('confluence_best') || 0);
+  let nextId = 1;
+  let busy = false;    // animating
+  let gameOver = false;
+
+  bestEl.textContent = best;
+
+  const idx = (r, c) => r * SIZE + c;
+
+  function newTile(r, c, level) {
+    return { id: nextId++, r, c, level, // logical cell
+             ar: r, ac: c,             // animated cell (float) for slide
+             pop: 0, spawn: 1, gone: false };
+  }
+
+  function reset() {
+    grid = new Array(SIZE * SIZE).fill(null);
+    tiles = [];
+    score = 0; gameOver = false; busy = false;
+    scoreEl.textContent = '0';
+    overEl.style.display = 'none';
+    spawn(); spawn();
+    draw();
+  }
+
+  function emptyCells() {
+    const out = [];
+    for (let i = 0; i < grid.length; i++) if (!grid[i]) out.push(i);
+    return out;
+  }
+
+  function spawn() {
+    const empties = emptyCells();
+    if (!empties.length) return null;
+    const cell = empties[(Math.random() * empties.length) | 0];
+    const level = Math.random() < 0.85 ? 1 : 2;
+    const r = (cell / SIZE) | 0, c = cell % SIZE;
+    const t = newTile(r, c, level);
+    t.spawn = 0; // animate in
+    grid[cell] = t;
+    tiles.push(t);
+    return t;
+  }
+
+  // Resolve one line (array of tiles in travel order, index 0 = furthest).
+  // Returns slots: [{level, sources:[tile,...]}], with chain merging.
+  function resolveLine(line) {
+    const slots = line.map(t => ({ level: t.level, sources: [t] }));
+    let merges = 0, merged = true;
+    while (merged) {
+      merged = false;
+      for (let i = 0; i < slots.length - 1; i++) {
+        if (slots[i].level === slots[i + 1].level) {
+          slots[i] = { level: slots[i].level + 1,
+                       sources: slots[i].sources.concat(slots[i + 1].sources) };
+          slots.splice(i + 1, 1);
+          merges++; merged = true;
+          break; // restart scan -> deterministic leftmost cascade
+        }
+      }
+    }
+    return { slots, merges };
+  }
+
+  // dir: 'left','right','up','down'
+  function move(dir) {
+    if (busy || gameOver) return;
+    const horizontal = dir === 'left' || dir === 'right';
+    const forward = dir === 'left' || dir === 'up'; // travel toward index 0
+
+    let moved = false, totalMerges = 0, gained = 0;
+    const dyingTiles = []; // tiles absorbed into a survivor
+
+    for (let line = 0; line < SIZE; line++) {
+      // gather tiles in this row/col in travel order
+      const seq = [];
+      for (let k = 0; k < SIZE; k++) {
+        const pos = forward ? k : SIZE - 1 - k;
+        const r = horizontal ? line : pos;
+        const c = horizontal ? pos : line;
+        const t = grid[idx(r, c)];
+        if (t) seq.push(t);
+      }
+      if (!seq.length) continue;
+
+      const { slots, merges } = resolveLine(seq);
+      totalMerges += merges;
+
+      // place slots back into the line starting from the travel end
+      for (let s = 0; s < slots.length; s++) {
+        const pos = forward ? s : SIZE - 1 - s;
+        const r = horizontal ? line : pos;
+        const c = horizontal ? pos : line;
+        const slot = slots[s];
+        const survivor = slot.sources[0];
+
+        // detect any movement
+        if (survivor.r !== r || survivor.c !== c) moved = true;
+        if (slot.sources.length > 1) moved = true;
+
+        // all sources slide to the destination cell
+        for (const src of slot.sources) {
+          src.r = r; src.c = c;           // logical target (animated toward)
+          if (src !== survivor) { src.gone = true; dyingTiles.push(src); }
+        }
+        survivor.level = slot.level;
+        survivor.pendingPop = slot.sources.length > 1;
+        // stash for grid rebuild
+        survivor._destIdx = idx(r, c);
+      }
+    }
+
+    if (!moved) return; // invalid move: nothing slides, nothing merges
+
+    // scoring: each merge worth its result value, whole move multiplied by merges
+    if (totalMerges > 0) {
+      let base = 0;
+      for (const t of tiles) if (!t.gone && t.pendingPop) base += 2 ** t.level;
+      gained = base * totalMerges;
+      score += gained;
+      scoreEl.textContent = score;
+      if (score > best) { best = score; bestEl.textContent = best;
+        localStorage.setItem('confluence_best', best); }
+    }
+
+    // capture slide start positions
+    for (const t of tiles) { t.fromR = t.ar; t.fromC = t.ac; }
+
+    busy = true;
+    animateSlide(() => {
+      // rebuild grid from survivors
+      grid = new Array(SIZE * SIZE).fill(null);
+      const survivors = [];
+      for (const t of tiles) {
+        if (t.gone) continue;
+        grid[idx(t.r, t.c)] = t;
+        survivors.push(t);
+        if (t.pendingPop) { t.pop = 0; t.pendingPop = false; }
+      }
+      tiles = survivors;
+
+      if (totalMerges >= 2) showCombo(totalMerges, gained);
+
+      animatePop(() => {
+        spawn();
+        animateSpawn(() => {
+          busy = false;
+          if (checkGameOver()) endGame();
+        });
+      });
+    });
+  }
+
+  // ---- animations (rAF, no libs) ----
+  function animate(dur, step, done) {
+    const t0 = performance.now();
+    function frame(now) {
+      let p = (now - t0) / dur; if (p > 1) p = 1;
+      step(p);
+      draw();
+      if (p < 1) requestAnimationFrame(frame); else done && done();
+    }
+    requestAnimationFrame(frame);
+  }
+  const easeOut = p => 1 - Math.pow(1 - p, 3);
+  const easeBack = p => { const c = 2.2; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
+
+  function animateSlide(done) {
+    animate(SLIDE_MS, p => {
+      const e = easeOut(p);
+      for (const t of tiles) {
+        t.ar = t.fromR + (t.r - t.fromR) * e;
+        t.ac = t.fromC + (t.c - t.fromC) * e;
+      }
+    }, done);
+  }
+  function animatePop(done) {
+    const popped = tiles.filter(t => t.pop === 0 || t.pop !== undefined);
+    if (!tiles.some(t => t.pop !== undefined && t.pop < 1)) { done(); return; }
+    animate(POP_MS, p => { for (const t of tiles) if (t.pop !== undefined && t.pop <= 1) t.pop = p; },
+      () => { for (const t of tiles) t.pop = undefined; done(); });
+  }
+  function animateSpawn(done) {
+    const fresh = tiles.filter(t => t.spawn < 1);
+    if (!fresh.length) { done(); return; }
+    animate(SPAWN_MS, p => { for (const t of fresh) t.spawn = p; },
+      () => { for (const t of fresh) t.spawn = 1; done(); });
+  }
+
+  function showCombo(n, pts) {
+    comboEl.textContent = `×${n}  +${pts}`;
+    comboEl.style.transition = 'none';
+    comboEl.style.opacity = '0';
+    comboEl.style.transform = 'translate(-50%,-50%) scale(.6)';
+    requestAnimationFrame(() => {
+      comboEl.style.transition = 'opacity .5s ease, transform .5s cubic-bezier(.2,1.4,.4,1)';
+      comboEl.style.opacity = '1';
+      comboEl.style.transform = 'translate(-50%,-60%) scale(1.1)';
+      setTimeout(() => { comboEl.style.opacity = '0';
+        comboEl.style.transform = 'translate(-50%,-70%) scale(1)'; }, 380);
+    });
+  }
+
+  function checkGameOver() {
+    if (emptyCells().length) return false;
+    for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
+      const t = grid[idx(r, c)];
+      if (c + 1 < SIZE && grid[idx(r, c + 1)] && grid[idx(r, c + 1)].level === t.level) return false;
+      if (r + 1 < SIZE && grid[idx(r + 1, c)] && grid[idx(r + 1, c)].level === t.level) return false;
+    }
+    return true;
+  }
+  function endGame() {
+    gameOver = true;
+    overScoreEl.textContent = 'Score ' + score;
+    overEl.style.display = 'flex';
+  }
+
+  // ---- rendering ----
+  let metrics = { px: 0, gap: 0, cell: 0 };
+  function resize() {
+    const rect = cv.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    cv.width = rect.width * dpr;
+    cv.height = rect.height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const W = rect.width;
+    const gap = W * GAP_RATIO;
+    const cell = (W - gap * (SIZE + 1)) / SIZE;
+    metrics = { px: W, gap, cell };
+    draw();
+  }
+  function cellXY(r, c) {
+    const { gap, cell } = metrics;
+    return [gap + c * (cell + gap), gap + r * (cell + gap)];
+  }
+  function rr(x, y, w, h, rad) {
+    ctx.beginPath();
+    ctx.moveTo(x + rad, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rad);
+    ctx.arcTo(x + w, y + h, x, y + h, rad);
+    ctx.arcTo(x, y + h, x, y, rad);
+    ctx.arcTo(x, y, x + w, y, rad);
+    ctx.closePath();
+  }
+  function draw() {
+    const { px, cell } = metrics;
+    if (!px) return;
+    ctx.clearRect(0, 0, px, px);
+    // empty cells
+    for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
+      const [x, y] = cellXY(r, c);
+      ctx.fillStyle = '#222836';
+      rr(x, y, cell, cell, cell * 0.16); ctx.fill();
+    }
+    // tiles (draw gone ones first so survivors render on top)
+    const order = tiles.slice().sort((a, b) => (a.gone === b.gone) ? 0 : a.gone ? -1 : 1);
+    for (const t of order) {
+      const [x, y] = cellXY(t.ar, t.ac);
+      let s = 1;
+      if (t.spawn < 1) s = easeBack(Math.max(0.001, t.spawn));
+      if (t.pop !== undefined && t.pop <= 1) s = 1 + 0.18 * Math.sin(t.pop * Math.PI);
+      const cs = cell * s;
+      const off = (cell - cs) / 2;
+      ctx.save();
+      ctx.globalAlpha = t.gone ? 0.999 : 1;
+      ctx.fillStyle = colorFor(t.level);
+      rr(x + off, y + off, cs, cs, cs * 0.16); ctx.fill();
+      // number
+      const txt = valueText(t.level);
+      ctx.fillStyle = t.level >= 3 ? '#0e1116' : '#e8ecf4';
+      ctx.font = `800 ${Math.round(cell * (txt.length > 3 ? 0.26 : txt.length > 2 ? 0.32 : 0.40))}px -apple-system,system-ui,sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(txt, x + cell / 2, y + cell / 2 + cell * 0.02);
+      ctx.restore();
+    }
+  }
+
+  // ---- input ----
+  const keyMap = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down',
+                   a:'left', d:'right', w:'up', s:'down' };
+  window.addEventListener('keydown', e => {
+    const dir = keyMap[e.key];
+    if (dir) { e.preventDefault(); move(dir); }
+  });
+
+  let tStart = null;
+  const SWIPE_MIN = 24;
+  function onStart(x, y) { tStart = { x, y }; }
+  function onEnd(x, y) {
+    if (!tStart) return;
+    const dx = x - tStart.x, dy = y - tStart.y;
+    tStart = null;
+    if (Math.abs(dx) < SWIPE_MIN && Math.abs(dy) < SWIPE_MIN) return;
+    if (Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? 'right' : 'left');
+    else move(dy > 0 ? 'down' : 'up');
+  }
+  cv.addEventListener('touchstart', e => { const t = e.changedTouches[0]; onStart(t.clientX, t.clientY); }, { passive: true });
+  cv.addEventListener('touchend', e => { const t = e.changedTouches[0]; onEnd(t.clientX, t.clientY); }, { passive: true });
+  cv.addEventListener('mousedown', e => onStart(e.clientX, e.clientY));
+  window.addEventListener('mouseup', e => onEnd(e.clientX, e.clientY));
+
+  document.getElementById('newBtn').addEventListener('click', reset);
+  document.getElementById('againBtn').addEventListener('click', reset);
+  window.addEventListener('resize', resize);
+
+  // ---- boot ----
+  reset();
+  resize();
+})();
+</script>
+</body>
+</html>
