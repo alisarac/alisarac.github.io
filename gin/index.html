@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e1116">
+<title>Gin Rummy</title>
+<style>
+  :root{ --bg:#0e1116; --panel:#1a1f29; --slot:#1f2532; --ink:#e8ecf4; --muted:#7c879c; --accent:#5ad1c5;
+         --card:#f5f2ea; --cardEdge:#cabfa6; --red:#c2413f; --black:#1d2330; --back:#39507a; --back2:#2a3c5e; --gold:#d8b25a; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;background:radial-gradient(120% 80% at 50% 0%, #131a24 0%, var(--bg) 70%);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+    overscroll-behavior:none;touch-action:none;user-select:none;}
+  #app{min-height:100%;display:flex;flex-direction:column;align-items:center;gap:10px;
+    padding:12px env(safe-area-inset-right) calc(12px + env(safe-area-inset-bottom)) env(safe-area-inset-left);}
+  header{width:100%;max-width:500px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;}
+  .title{font-size:23px;font-weight:800;letter-spacing:.5px;}
+  .title small{display:block;font-size:10px;font-weight:600;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+  #status{font-size:13px;color:var(--accent);font-weight:600;min-height:18px;text-align:right;max-width:210px;}
+  #stage{position:relative;width:100%;max-width:500px;}
+  canvas{width:100%;display:block;}
+  .bar{width:100%;max-width:500px;display:flex;align-items:center;justify-content:flex-end;gap:8px;min-height:42px;}
+  button{background:var(--slot);color:var(--ink);border:0;border-radius:12px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;transition:transform .08s, opacity .2s;}
+  button:active{transform:scale(.96);}
+  button:disabled{opacity:.32;}
+  #knockBtn{display:none;background:linear-gradient(180deg,#6fe0d4,#46b3a8);color:#06201d;box-shadow:0 6px 18px rgba(90,209,197,.25);}
+  #knockBtn.gin{background:linear-gradient(180deg,#e6c976,#d8b25a);color:#2a1f06;box-shadow:0 6px 18px rgba(216,178,90,.3);}
+  #over{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    background:rgba(9,12,16,.86);backdrop-filter:blur(4px);border-radius:14px;text-align:center;padding:22px;}
+  #over h2{margin:0;font-size:27px;font-weight:900;color:var(--accent);}
+  #over.gin h2{color:var(--gold);}
+  #over p{margin:0;color:var(--ink);font-size:14px;line-height:1.7;white-space:pre-line;}
+  #over .totals{color:var(--muted);font-size:13px;margin-top:4px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="title">Gin Rummy<small>draw · meld · knock</small></div>
+    <div id="status"></div>
+  </header>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="over"><h2 id="overTitle"></h2><p id="overBody"></p><p class="totals" id="overTotals"></p>
+      <button id="nextBtn" style="background:var(--accent);color:#0e1116;">Next hand</button></div>
+  </div>
+  <div class="bar">
+    <button id="sortBtn">Sort</button>
+    <button id="knockBtn"></button>
+    <button id="newBtn">New game</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const SUIT = ['♠', '♥', '♦', '♣'];
+  const rankStr = r => r === 1 ? 'A' : r === 13 ? 'K' : r === 12 ? 'Q' : r === 11 ? 'J' : String(r);
+  const isRed = s => s === 1 || s === 2;
+  const deadVal = c => Math.min(c.r, 10);
+  const ri = n => (Math.random() * n) | 0;
+  const cid = c => c.s * 13 + c.r;
+  const MELDC = ['#3f9e8a', '#5a8fd1', '#b9863f', '#9e6fb0', '#6f9e3f'];
+
+  // ---------- meld solver (validated) ----------
+  function bestMelds(cards) {
+    const n = cards.length, melds = [];
+    const byRank = {}; cards.forEach((c, i) => (byRank[c.r] ??= []).push(i));
+    for (const r in byRank) { const g = byRank[r]; if (g.length >= 3) {
+      const combos = (arr, k) => { const res = [], rec = (st, cur) => { if (cur.length === k) return res.push(cur.slice()); for (let i = st; i < arr.length; i++) { cur.push(arr[i]); rec(i + 1, cur); cur.pop(); } }; rec(0, []); return res; };
+      for (const cmb of combos(g, 3)) melds.push(cmb); if (g.length === 4) melds.push(g.slice());
+    } }
+    const bySuit = {}; cards.forEach((c, i) => (bySuit[c.s] ??= []).push(i));
+    for (const s in bySuit) { const g = bySuit[s].slice().sort((a, b) => cards[a].r - cards[b].r);
+      let run = [g[0]];
+      for (let i = 1; i <= g.length; i++) {
+        if (i < g.length && cards[g[i]].r === cards[g[i - 1]].r + 1) run.push(g[i]);
+        else { if (run.length >= 3) for (let a = 0; a < run.length; a++) for (let b = a + 2; b < run.length; b++) melds.push(run.slice(a, b + 1)); if (i < g.length) run = [g[i]]; }
+      }
+    }
+    const masks = melds.map(m => m.reduce((a, i) => a | (1 << i), 0));
+    const full = (1 << n) - 1, memo = new Map();
+    function solve(used) {
+      if (used === full) return { dw: 0, melds: [] };
+      if (memo.has(used)) return memo.get(used);
+      let i = 0; while (used & (1 << i)) i++;
+      let sub = solve(used | (1 << i)); let best = { dw: deadVal(cards[i]) + sub.dw, melds: sub.melds };
+      for (let mi = 0; mi < masks.length; mi++) { const mm = masks[mi]; if (!(mm & (1 << i)) || (mm & used)) continue; const s2 = solve(used | mm); if (s2.dw < best.dw) best = { dw: s2.dw, melds: [melds[mi], ...s2.melds] }; }
+      memo.set(used, best); return best;
+    }
+    return solve(0);
+  }
+  // display order + meld coloring for a hand
+  function analyze(hand) {
+    const b = bestMelds(hand);
+    const order = [], meldOf = {};
+    b.melds.forEach((idxs, mi) => {
+      const cs = idxs.map(i => hand[i]); const set = cs.every(c => c.r === cs[0].r);
+      cs.sort((a, c) => set ? a.s - c.s : a.r - c.r);
+      cs.forEach(c => { order.push(c); meldOf[cid(c)] = mi; });
+    });
+    const melded = new Set(); b.melds.forEach(m => m.forEach(i => melded.add(i)));
+    hand.filter((c, i) => !melded.has(i)).sort((a, c) => a.s - c.s || a.r - c.r).forEach(c => { order.push(c); meldOf[cid(c)] = -1; });
+    return { order, meldOf, dw: b.dw, melds: b.melds.map(idxs => idxs.map(i => hand[i])) };
+  }
+  // best discard from an 11-card hand (optionally excluding a card you may not discard)
+  function bestDiscard(hand, exclude) {
+    let best = null;
+    for (const d of hand) {
+      if (exclude && cid(d) === cid(exclude)) continue;
+      const rest = hand.filter(c => c !== d);
+      const dw = bestMelds(rest).dw;
+      if (!best || dw < best.dw || (dw === best.dw && deadVal(d) > deadVal(best.discard))) best = { discard: d, dw, rest };
+    }
+    return best;
+  }
+
+  // ---------- DOM ----------
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  const statusEl = document.getElementById('status'), knockBtn = document.getElementById('knockBtn');
+  const overEl = document.getElementById('over'), overTitle = document.getElementById('overTitle'), overBody = document.getElementById('overBody'), overTotals = document.getElementById('overTotals');
+  const stage = document.getElementById('stage');
+
+  // ---------- state ----------
+  let stock, discard, you, ai, turn, phase, scores, drawn, drawnFromDiscard, knockIntent, busy, flying, gen = 0;
+  let youOrder = [], youMeldOf = {}, youDw = 0;
+
+  function newGame() { scores = { you: 0, ai: 0 }; overEl.style.display = 'none'; overEl.className = ''; newHand(); }
+
+  function newHand() {
+    gen++;
+    const deck = [];
+    for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) deck.push({ r, s });
+    for (let i = deck.length - 1; i > 0; i--) { const j = ri(i + 1);[deck[i], deck[j]] = [deck[j], deck[i]]; }
+    you = deck.splice(0, 10); ai = deck.splice(0, 10);
+    discard = [deck.pop()]; stock = deck;
+    turn = 'you'; phase = 'draw'; drawn = null; drawnFromDiscard = false; knockIntent = false; busy = false; flying = null;
+    overEl.style.display = 'none'; overEl.className = '';
+    refreshYou(); updateKnock(); setStatus('Your turn — draw a card'); draw();
+  }
+
+  function refreshYou() { const a = analyze(you); youOrder = a.order; youMeldOf = a.meldOf; youDw = a.dw; }
+
+  // ---------- layout ----------
+  let M = {};
+  function metrics() {
+    const W = stage.clientWidth || 500, H = Math.round(W * 1.15);
+    const cardW = W * 0.135, cardH = cardW * 1.42, m = W * 0.025;
+    const oppY = m, midY = H * 0.40, handY = H - cardH - m;
+    const handSpace = Math.min(cardW * 0.66, (W - 2 * m - cardW) / 9);
+    const handStart = (W - (handSpace * 9 + cardW)) / 2;
+    const stockX = W / 2 - cardW - m * 0.6, discX = W / 2 + m * 0.6;
+    M = { W, H, cardW, cardH, m, oppY, midY, handY, handSpace, handStart, stockX, discX };
+    const dpr = window.devicePixelRatio || 1;
+    if (cv.height !== Math.round(H * dpr)) { cv.style.height = H + 'px'; cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+  }
+  const handX = i => M.handStart + i * M.handSpace;
+
+  // ---------- drawing primitives ----------
+  function rr(x, y, w, h, rad) { ctx.beginPath(); ctx.moveTo(x + rad, y); ctx.arcTo(x + w, y, x + w, y + h, rad); ctx.arcTo(x + w, y + h, x, y + h, rad); ctx.arcTo(x, y + h, x, y, rad); ctx.arcTo(x, y, x + w, y, rad); ctx.closePath(); }
+  function shadowCard(x, y, w, h) { ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3; rr(x, y, w, h, w * 0.12); ctx.fillStyle = '#000'; ctx.fill(); ctx.restore(); }
+  function face(x, y, c, w, h, opts = {}) {
+    if (opts.shadow !== false) shadowCard(x, y, w, h);
+    rr(x, y, w, h, w * 0.12); ctx.fillStyle = '#f5f2ea'; ctx.globalAlpha = opts.dim ? 0.45 : 1; ctx.fill();
+    ctx.globalAlpha = 1; ctx.lineWidth = opts.sel ? 3 : 1; ctx.strokeStyle = opts.sel ? '#5ad1c5' : '#cabfa6'; ctx.stroke();
+    ctx.fillStyle = isRed(c.s) ? '#c2413f' : '#1d2330'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.font = `800 ${h * 0.22}px system-ui`; ctx.fillText(rankStr(c.r), x + w * 0.12, y + h * 0.07);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `${h * 0.30}px system-ui`;
+    ctx.fillText(SUIT[c.s], x + w / 2, y + h * 0.62);
+  }
+  function back(x, y, w, h) { shadowCard(x, y, w, h); rr(x, y, w, h, w * 0.12); ctx.fillStyle = '#39507a'; ctx.fill(); ctx.fillStyle = '#2a3c5e'; rr(x + w * 0.16, y + h * 0.12, w * 0.68, h * 0.76, w * 0.08); ctx.fill(); }
+  function emptyPile(x, y, w, h, label) { rr(x, y, w, h, w * 0.12); ctx.fillStyle = '#171c26'; ctx.fill(); ctx.strokeStyle = '#2a3140'; ctx.lineWidth = 1.5; ctx.stroke(); if (label) { ctx.fillStyle = '#39414f'; ctx.font = `700 ${h * 0.2}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, x + w / 2, y + h / 2); } }
+
+  // ---------- render ----------
+  function draw() {
+    metrics(); const { W, H, cardW: cw, cardH: ch, m } = M;
+    ctx.clearRect(0, 0, W, H);
+
+    // opponent hand (backs)
+    const oppN = ai.length, ow = cw * 0.7, ospace = Math.min(ow * 0.55, (W - 2 * m - ow) / Math.max(1, oppN - 1)), ostart = (W - (ospace * (oppN - 1) + ow)) / 2;
+    for (let i = 0; i < oppN; i++) back(ostart + i * ospace, M.oppY, ow, ow * 1.42);
+    ctx.fillStyle = turn === 'ai' ? '#5ad1c5' : '#7c879c'; ctx.font = '700 12px system-ui'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(`Opponent   ${scores.ai}`, m, M.oppY + ow * 1.42 + 12);
+
+    // stock + discard
+    if (stock.length) back(M.stockX, M.midY, cw, ch); else emptyPile(M.stockX, M.midY, cw, ch, '');
+    ctx.fillStyle = '#7c879c'; ctx.font = '600 11px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(`stock ${stock.length}`, M.stockX + cw / 2, M.midY + ch + 5);
+    if (discard.length) face(M.discX, M.midY, discard[discard.length - 1], cw, ch); else emptyPile(M.discX, M.midY, cw, ch, 'discard');
+    ctx.fillStyle = '#7c879c'; ctx.fillText('discard', M.discX + cw / 2, M.midY + ch + 5);
+
+    // your hand — meld underlays first
+    const order = youOrder;
+    for (let i = 0; i < order.length;) {
+      const mi = youMeldOf[cid(order[i])];
+      if (mi < 0) { i++; continue; }
+      let j = i; while (j < order.length && youMeldOf[cid(order[j])] === mi) j++;
+      const x0 = handX(i) - 4, x1 = handX(j - 1) + cw + 4;
+      ctx.fillStyle = MELDC[mi % MELDC.length] + '33'; rr(x0, M.handY - 6, x1 - x0, ch + 12, 10); ctx.fill();
+      ctx.strokeStyle = MELDC[mi % MELDC.length] + 'aa'; ctx.lineWidth = 1.5; ctx.stroke();
+      i = j;
+    }
+    const canDiscard = turn === 'you' && phase === 'discard' && !busy;
+    for (let i = 0; i < order.length; i++) {
+      const c = order[i]; const dn = drawnFromDiscard && drawn && cid(c) === cid(drawn) && canDiscard;
+      face(handX(i), M.handY, c, cw, ch, { dim: dn });
+    }
+    // deadwood badge
+    ctx.fillStyle = youDw === 0 ? '#d8b25a' : '#7c879c'; ctx.font = '700 12px system-ui'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText(youDw === 0 ? 'GIN' : `Deadwood ${youDw}`, M.W - m, M.handY - 16);
+    ctx.fillStyle = turn === 'you' ? '#5ad1c5' : '#7c879c'; ctx.textAlign = 'left';
+    ctx.fillText(`You   ${scores.you}`, m, M.handY - 16);
+
+    // flying card (animation)
+    if (flying) {
+      const e = 1 - Math.pow(1 - flying.t, 3);
+      const x = flying.x0 + (flying.x1 - flying.x0) * e, y = flying.y0 + (flying.y1 - flying.y0) * e;
+      if (flying.faceUp) face(x, y, flying.card, cw, ch); else back(x, y, cw, ch);
+    }
+  }
+
+  // ---------- animation ----------
+  function anim(dur, step, done) { const g = gen, t0 = performance.now(); (function f(now) { if (g !== gen) return; let p = (now - t0) / dur; if (p > 1) p = 1; step(p); draw(); p < 1 ? requestAnimationFrame(f) : done && done(); })(performance.now()); }
+  function fly(card, x0, y0, x1, y1, faceUp, done) { flying = { card, x0, y0, x1, y1, faceUp, t: 0 }; anim(260, p => flying.t = p, () => { flying = null; done && done(); }); }
+
+  // ---------- turn flow ----------
+  function setStatus(s) { statusEl.textContent = s; }
+  function updateKnock() {
+    const show = turn === 'you' && phase === 'discard' && !busy;
+    const bd = show ? bestDiscard(you, drawnFromDiscard ? drawn : null) : null;
+    if (show && bd && bd.dw <= 10) {
+      knockBtn.style.display = 'inline-block';
+      const gin = bd.dw === 0; knockBtn.textContent = gin ? 'Gin!' : `Knock (${bd.dw})`;
+      knockBtn.className = gin ? 'gin' : ''; knockBtn.disabled = false;
+    } else knockBtn.style.display = 'none';
+  }
+
+  function youDrawFrom(src) {
+    if (busy || turn !== 'you' || phase !== 'draw') return;
+    if (src === 'stock' && !stock.length) return;
+    busy = true; knockBtn.style.display = 'none';
+    const card = src === 'stock' ? stock.pop() : discard.pop();
+    drawn = card; drawnFromDiscard = src === 'discard';
+    const x0 = src === 'stock' ? M.stockX : M.discX;
+    fly(card, x0, M.midY, handX(Math.min(youOrder.length, 9)), M.handY, src === 'discard', () => {
+      you.push(card); refreshYou(); phase = 'discard'; busy = false;
+      setStatus('Discard a card' + (drawnFromDiscard ? '' : ' — or knock')); updateKnock(); draw();
+    });
+  }
+
+  function youDiscard(card) {
+    if (busy || turn !== 'you' || phase !== 'discard') return;
+    if (drawnFromDiscard && drawn && cid(card) === cid(drawn)) return;   // can't discard the card you just took
+    const i = youOrder.findIndex(c => cid(c) === cid(card));
+    busy = true; knockBtn.style.display = 'none';
+    you = you.filter(c => c !== card);
+    fly(card, handX(i < 0 ? 0 : i), M.handY, M.discX, M.midY, true, () => {
+      discard.push(card); refreshYou();
+      if (knockIntent) { knockIntent = false; endHand('you'); return; }
+      busy = false; turn = 'ai'; phase = 'draw'; drawn = null; drawnFromDiscard = false;
+      setStatus('Opponent’s turn…'); draw(); schedule(aiTurn, 650);
+    });
+  }
+
+  // ---------- AI ----------
+  function schedule(fn, d) { const g = gen; setTimeout(() => { if (g === gen) fn(); }, d); }
+  function aiTurn() {
+    if (phase === 'roundEnd' || phase === 'gameEnd') return;
+    // draw decision
+    const top = discard[discard.length - 1];
+    const curDw = bestMelds(ai).dw;
+    const takeDw = top ? bestDiscard(ai.concat(top), top).dw : 99;
+    const take = top && takeDw < curDw;
+    const card = take ? discard.pop() : stock.pop();
+    if (!card) { endWash(); return; }
+    busy = true;
+    fly(card, take ? M.discX : M.stockX, M.midY, M.W / 2, M.oppY, take, () => {
+      ai.push(card);
+      const bd = bestDiscard(ai, take ? card : null);
+      ai = ai.filter(c => c !== bd.discard);
+      schedule(() => fly(bd.discard, M.W / 2, M.oppY, M.discX, M.midY, true, () => {
+        discard.push(bd.discard);
+        if (bd.dw <= 10 && (bd.dw === 0 || Math.random() < 0.92)) { endHand('ai'); return; }
+        busy = false; turn = 'you'; phase = 'draw'; drawn = null; drawnFromDiscard = false;
+        setStatus(take ? 'Opponent took your discard. Your turn' : 'Your turn — draw'); refreshYou(); updateKnock(); draw();
+      }), 420);
+    });
+  }
+
+  // ---------- scoring ----------
+  function layoff(oppDead, knockerMelds) {
+    const melds = knockerMelds.map(m => m.slice()); let pool = oppDead.slice(), changed = true, laid = 0;
+    const canLay = (c, m) => { const set = m.every(x => x.r === m[0].r); if (set) return c.r === m[0].r; if (c.s !== m[0].s) return false; const rs = m.map(x => x.r); return c.r === Math.min(...rs) - 1 || c.r === Math.max(...rs) + 1; };
+    while (changed) { changed = false; for (let i = 0; i < pool.length; i++) { for (const m of melds) if (canLay(pool[i], m)) { m.push(pool[i]); laid++; pool.splice(i, 1); changed = true; break; } if (changed) break; } }
+    return { remain: pool.reduce((a, c) => a + deadVal(c), 0), laid };
+  }
+
+  function endHand(knocker) {
+    phase = 'roundEnd'; busy = true; flying = null;
+    const kHand = knocker === 'you' ? you : ai, oHand = knocker === 'you' ? ai : you;
+    const kb = analyze(kHand), ob = analyze(oHand);
+    const Dk = kb.dw;
+    const oppDeadCards = ob.order.filter(c => ob.meldOf[cid(c)] === -1);
+    const oppDeadFull = oppDeadCards.reduce((a, c) => a + deadVal(c), 0);
+    let line, gin = Dk === 0, kPts = 0, oPts = 0;
+    if (gin) { kPts = oppDeadFull + 25; line = `${knocker === 'you' ? 'You' : 'Opponent'} went GIN!  +${kPts}\n(opponent deadwood ${oppDeadFull} + 25 bonus)`; }
+    else {
+      const lo = layoff(oppDeadCards, kb.melds); const Do = lo.remain;
+      if (Do > Dk) { kPts = Do - Dk; line = `${knocker === 'you' ? 'You' : 'Opponent'} knocked.  Deadwood ${Dk} vs ${Do}${lo.laid ? ` (laid off ${lo.laid})` : ''}.\n${knocker === 'you' ? 'You' : 'Opponent'} +${kPts}`; }
+      else { oPts = (Dk - Do) + 25; const u = knocker === 'you' ? 'Opponent' : 'You'; line = `Undercut!  Deadwood ${Dk} vs ${Do}.\n${u} +${oPts} (incl. 25 bonus)`; }
+    }
+    scores.you += knocker === 'you' ? kPts : oPts; scores.ai += knocker === 'you' ? oPts : kPts;
+    const win = scores.you >= 100 || scores.ai >= 100;
+    overTitle.textContent = gin ? 'GIN' : (kPts ? (knocker === 'you' ? 'You knocked' : 'Opponent knocked') : 'Undercut!');
+    overBody.textContent = line;
+    overTotals.textContent = `Totals — You ${scores.you} · Opponent ${scores.ai}`;
+    overEl.className = gin ? 'gin' : '';
+    if (win) { overTitle.textContent = (scores.you > scores.ai ? 'You win the game! 🏆' : 'Opponent wins'); phase = 'gameEnd'; document.getElementById('nextBtn').textContent = 'Play again'; }
+    else document.getElementById('nextBtn').textContent = 'Next hand';
+    knockBtn.style.display = 'none'; setStatus(''); refreshYou(); draw(); overEl.style.display = 'flex';
+  }
+  function endWash() { phase = 'roundEnd'; busy = true; overTitle.textContent = 'Stock empty'; overBody.textContent = 'No one knocked — hand is a wash.'; overTotals.textContent = `Totals — You ${scores.you} · Opponent ${scores.ai}`; overEl.className = ''; document.getElementById('nextBtn').textContent = 'Next hand'; overEl.style.display = 'flex'; }
+
+  // ---------- input ----------
+  function localXY(e) { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+  function onTap(x, y) {
+    if (busy || phase === 'roundEnd' || phase === 'gameEnd' || turn !== 'you') return;
+    const inRect = (px, py, w, h) => x >= px && x <= px + w && y >= py && y <= py + h;
+    if (phase === 'draw') {
+      if (inRect(M.stockX, M.midY, M.cardW, M.cardH)) return youDrawFrom('stock');
+      if (inRect(M.discX, M.midY, M.cardW, M.cardH)) return youDrawFrom('discard');
+      return;
+    }
+    if (phase === 'discard') {
+      for (let i = youOrder.length - 1; i >= 0; i--) if (inRect(handX(i), M.handY, M.cardW, M.cardH)) return youDiscard(youOrder[i]);
+    }
+  }
+  let dx = null, dy = null;
+  cv.addEventListener('pointerdown', e => { dx = e.clientX; dy = e.clientY; });
+  cv.addEventListener('pointerup', e => { if (dx == null) return; const far = Math.abs(e.clientX - dx) > 12 || Math.abs(e.clientY - dy) > 12; dx = dy = null; if (far) return; const [x, y] = localXY(e); onTap(x, y); });
+
+  knockBtn.addEventListener('click', () => { if (turn === 'you' && phase === 'discard' && !busy) { knockIntent = true; setStatus('Tap the card to discard & knock'); } });
+  document.getElementById('sortBtn').addEventListener('click', () => { refreshYou(); draw(); });
+  document.getElementById('nextBtn').addEventListener('click', () => { if (phase === 'gameEnd') newGame(); else newHand(); });
+  document.getElementById('newBtn').addEventListener('click', newGame);
+  window.addEventListener('resize', draw);
+
+  newGame();
+  window.addEventListener('load', draw);
+})();
+</script>
+</body>
+</html>
