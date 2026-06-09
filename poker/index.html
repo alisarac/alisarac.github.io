@@ -10,8 +10,8 @@
   html,body{margin:0;width:100%;height:100%;background:#0e1116;overflow:hidden;}
   *{ -webkit-tap-highlight-color:transparent; box-sizing:border-box; }
   #app{display:flex;flex-direction:column;height:100vh;height:100dvh;}
-  #game{flex:1 1 auto;min-height:0;}
-  canvas{display:block;touch-action:none;}
+  #game{flex:1 1 auto;min-height:0;position:relative;}
+  #cv{width:100%;height:100%;display:block;touch-action:none;}
   #controls{flex:0 0 auto;display:flex;flex-direction:column;gap:9px;
     padding:10px 10px calc(12px + env(safe-area-inset-bottom)) 10px;background:#0e1116;}
   .crow{display:flex;gap:9px;}
@@ -31,7 +31,7 @@
 </head>
 <body>
   <div id="app">
-    <div id="game"></div>
+    <div id="game"><canvas id="cv"></canvas></div>
     <div id="controls">
       <div class="crow">
         <button class="btn" id="bFold">Fold</button>
@@ -45,7 +45,6 @@
     </div>
   </div>
   <div id="panel" class="hidden"><div class="card"><h2 id="pTitle"></h2><p id="pBody"></p><button id="pBtn">Next hand</button></div></div>
-  <script src="phaser.min.js?v=1"></script>
-  <script src="game.js?v=7"></script>
+  <script src="game.js?v=10"></script>
 </body>
 </html>
