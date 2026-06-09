@@ -124,8 +124,17 @@ class Table extends Phaser.Scene{
     this.potText=this.add.text(0,0,'',{fontFamily:'system-ui',fontStyle:'800',color:'#e8ecf4'}).setOrigin(0.5);
     this.comm=[]; for(let i=0;i<5;i++) this.comm.push(this.makeCard());
     this.seats=[0,1,2,3].map(i=>this.makeSeat(i));
-    this.makeControls();
-    this.makeResultPanel();
+    // DOM controls + result panel (native taps are reliable on mobile; Phaser only renders the table)
+    const $=id=>document.getElementById(id);
+    this.dom={ fold:$('bFold'), call:$('bCall'), half:$('bHalf'), pot:$('bPot'), allin:$('bAllin') };
+    this.dom.fold.onclick =()=>this.onBtn('fold');
+    this.dom.call.onclick =()=>this.onBtn('call');
+    this.dom.half.onclick =()=>this.onBtn('half');
+    this.dom.pot.onclick  =()=>this.onBtn('potb');
+    this.dom.allin.onclick=()=>this.onBtn('allin');
+    this.panelEl=$('panel'); this.pTitle=$('pTitle'); this.pBody=$('pBody'); this.pBtn=$('pBtn');
+    this.pBtn.onclick=()=>{ this.panelEl.classList.add('hidden'); if(this.panelEnded) newGame(); else newHand(); };
+    this.disableControls();
     this.layout();
     this.scale.on('resize',()=>{ this.layout(); this.refresh(); });
     this.noAnim = location.hash.includes('static')||location.hash.includes('demo');
@@ -179,64 +188,22 @@ class Table extends Phaser.Scene{
     return {cont,c1,c2,name,info,ring,dealer};
   }
 
-  makeControls(){
-    this.btns={};
-    const mk=(key,label,stroke,color)=>{ const cont=this.add.container(0,0);
-      const g=this.add.graphics(); const t=this.add.text(0,0,label,{fontFamily:'system-ui',fontStyle:'700',color}).setOrigin(0.5);
-      cont.add([g,t]); cont.g=g; cont.label=t; cont.stroke=stroke;
-      cont.on('pointerdown',()=>this.onBtn(key)); this.btns[key]=cont; };
-    mk('fold','Fold',0x3a2a2c,'#e98b86'); mk('call','Check',0x27403d,'#7fe0d6');
-    mk('half','½ Pot',0x283041,'#e8ecf4'); mk('potb','Pot',0x283041,'#e8ecf4'); mk('allin','All-in',0x3a3320,'#e6c976');
-    this.disableControls();
-  }
-  setBox(b,x,y,w,h){ b.setPosition(x,y); b.g.clear(); b.g.fillStyle(0x161b24,1).fillRoundedRect(-w/2,-h/2,w,h,12); b.g.lineStyle(1,b.stroke,1).strokeRoundedRect(-w/2,-h/2,w,h,12);
-    b.label.setFontSize(Math.max(13,Math.round(h*0.34))); b.setSize(w,h).setInteractive(new Phaser.Geom.Rectangle(-w/2,-h/2,w,h),Phaser.Geom.Rectangle.Contains); }
-
-  makeResultPanel(){
-    this.panel=this.add.container(0,0).setDepth(50).setVisible(false);
-    this.panelG=this.add.graphics();
-    this.panelTitle=this.add.text(0,0,'',{fontFamily:'system-ui',fontStyle:'900',color:'#5ad1c5',align:'center'}).setOrigin(0.5);
-    this.panelBody=this.add.text(0,0,'',{fontFamily:'system-ui',color:'#e8ecf4',align:'center',lineSpacing:7}).setOrigin(0.5);
-    this.panelBtn=this.add.container(0,0); this.panelBtnG=this.add.graphics();
-    this.panelBtnText=this.add.text(0,0,'Next hand',{fontFamily:'system-ui',fontStyle:'800',color:'#0e1116'}).setOrigin(0.5);
-    this.panelBtn.add([this.panelBtnG,this.panelBtnText]);
-    this.panelBtn.on('pointerdown',()=>{ this.panel.setVisible(false); if(this.panelEnded) newGame(); else newHand(); });
-    this.panel.add([this.panelG,this.panelTitle,this.panelBody,this.panelBtn]);
-  }
-
   // ---------------- responsive layout ----------------
   layout(){
     const w=this.W(), h=this.H();
     this.felt.clear();
-    this.felt.fillStyle(FELT,1).fillRoundedRect(w*0.03,h*0.05,w*0.94,h*0.78,w*0.06);
-    this.felt.lineStyle(2,FELT_E,1).strokeRoundedRect(w*0.03,h*0.05,w*0.94,h*0.78,w*0.06);
-    // community
-    const cw=Math.min(w*0.155,h*0.085), ch=cw*1.4, gap=cw*0.16, gw=5*cw+4*gap, sx=w/2-gw/2+cw/2, cy=h*0.42;
+    this.felt.fillStyle(FELT,1).fillRoundedRect(w*0.03,h*0.04,w*0.94,h*0.92,w*0.06);
+    this.felt.lineStyle(2,FELT_E,1).strokeRoundedRect(w*0.03,h*0.04,w*0.94,h*0.92,w*0.06);
+    // community + pot
+    const cw=Math.min(w*0.155,h*0.085), ch=cw*1.4, gap=cw*0.16, gw=5*cw+4*gap, sx=w/2-gw/2+cw/2, cy=h*0.44;
     this.comm.forEach((c,i)=>{ c.size(cw,ch); c.setPosition(sx+i*(cw+gap),cy); });
-    this.potText.setFontSize(Math.max(15,Math.round(w*0.05))).setPosition(w/2,cy+ch/2+h*0.035);
-    this.commGeo={cw,ch,cy};
+    this.potText.setFontSize(Math.max(15,Math.round(w*0.05))).setPosition(w/2,cy+ch/2+h*0.04);
     // seats: bots across the top, You at the bottom
-    const sCW=Math.min(w*0.13,h*0.07), yCW=Math.min(w*0.17,h*0.092);
-    this.layoutSeat(1, w*0.20, h*0.15, sCW);
-    this.layoutSeat(2, w*0.50, h*0.15, sCW);
-    this.layoutSeat(3, w*0.80, h*0.15, sCW);
-    this.layoutSeat(0, w*0.50, h*0.65, yCW);
-    // controls — two rows below the felt
-    const bh=Math.min(h*0.062,w*0.13), m=w*0.025;
-    const w1=(w-3*m)/2, y1=h*0.875;
-    this.setBox(this.btns.fold, m+w1/2, y1, w1, bh);
-    this.setBox(this.btns.call, m*2+w1*1.5, y1, w1, bh);
-    const w2=(w-4*m)/3, y2=h*0.955;
-    ['half','potb','allin'].forEach((k,j)=>this.setBox(this.btns[k], m+w2/2+j*(w2+m), y2, w2, bh));
-    // result panel
-    const pw=Math.min(w*0.9,520), ph=Math.min(h*0.42,300);
-    this.panel.setPosition(w/2,h*0.45);
-    this.panelG.clear(); this.panelG.fillStyle(0x090c10,0.92).fillRoundedRect(-pw/2,-ph/2,pw,ph,18).lineStyle(2,0x283041,1).strokeRoundedRect(-pw/2,-ph/2,pw,ph,18);
-    this.panelTitle.setFontSize(Math.round(w*0.07)).setPosition(0,-ph*0.32);
-    this.panelBody.setFontSize(Math.round(w*0.04)).setPosition(0,-ph*0.02).setWordWrapWidth(pw*0.85);
-    const pbw=Math.min(pw*0.5,200), pbh=ph*0.2; this.panelBtn.setPosition(0,ph*0.32);
-    this.panelBtnG.clear(); this.panelBtnG.fillStyle(0x5ad1c5,1).fillRoundedRect(-pbw/2,-pbh/2,pbw,pbh,12);
-    this.panelBtnText.setFontSize(Math.round(pbh*0.42)); this.panelBtn.setSize(pbw,pbh).setInteractive(new Phaser.Geom.Rectangle(-pbw/2,-pbh/2,pbw,pbh),Phaser.Geom.Rectangle.Contains);
+    const sCW=Math.min(w*0.13,h*0.075), yCW=Math.min(w*0.17,h*0.10);
+    this.layoutSeat(1, w*0.20, h*0.16, sCW);
+    this.layoutSeat(2, w*0.50, h*0.16, sCW);
+    this.layoutSeat(3, w*0.80, h*0.16, sCW);
+    this.layoutSeat(0, w*0.50, h*0.80, yCW);
   }
   layoutSeat(i,x,y,cw){
     const s=this.seats[i], ch=cw*1.4, fs=Math.max(11,Math.round(cw*0.32));
@@ -249,7 +216,7 @@ class Table extends Phaser.Scene{
 
   // ---------------- engine callbacks ----------------
   onNewHand(){
-    this.panel.setVisible(false);
+    this.panelEl.classList.add('hidden');
     for(const c of this.comm){ c.set(null); c._shown=false; }
     this.refresh();
     if(this.noAnim) return;
@@ -286,18 +253,18 @@ class Table extends Phaser.Scene{
 
   setStatus(){}
   enableControls(){
+    const d=this.dom; if(!d) return;
     const p=players[0], cc=currentBet-p.bet;
-    this.showBtn('fold',true); this.showBtn('call',true);
-    this.btns.call.label.setText(cc<=0?'Check':('Call '+Math.min(cc,p.stack)));
+    d.fold.disabled=false; d.call.disabled=false;
+    d.call.textContent = cc<=0?'Check':('Call '+Math.min(cc,p.stack));
     const canRaise=able()>1 && p.stack>Math.max(0,cc), pn=pot();
     this.raiseAmt={ half:Math.min(p.bet+p.stack,currentBet+Math.max(minRaise,Math.round(pn*0.5))),
                     potb:Math.min(p.bet+p.stack,currentBet+Math.max(minRaise,pn)), allin:p.bet+p.stack };
-    this.showBtn('half',canRaise && this.raiseAmt.half<this.raiseAmt.allin);
-    this.showBtn('potb',canRaise && this.raiseAmt.potb<this.raiseAmt.allin);
-    this.showBtn('allin',canRaise);
+    d.half.disabled = !(canRaise && this.raiseAmt.half<this.raiseAmt.allin);
+    d.pot.disabled  = !(canRaise && this.raiseAmt.potb<this.raiseAmt.allin);
+    d.allin.disabled= !canRaise;
   }
-  disableControls(){ for(const k in this.btns) this.showBtn(k,false); }
-  showBtn(k,on){ const b=this.btns[k]; if(!b)return; b.setVisible(on); if(b.input)b.input.enabled=on; }
+  disableControls(){ const d=this.dom; if(!d) return; d.fold.disabled=d.call.disabled=d.half.disabled=d.pot.disabled=d.allin.disabled=true; }
   onBtn(k){
     if(busy||toAct!==0) return;
     const p=players[0], cc=currentBet-p.bet; let act;
@@ -310,9 +277,8 @@ class Table extends Phaser.Scene{
     busy=true; this.disableControls();
     const raised=applyAction(p,act); this.flashAction(0); afterAct(p,raised);
   }
-  showResult(title,body,ended){ this.panelEnded=ended; this.panelTitle.setText(title); this.panelBody.setText(body);
-    this.panelBtnText.setText(ended?'New game':'Next hand'); this.panel.setVisible(true).setScale(0.9);
-    this.tweens.add({targets:this.panel,scale:1,duration:200,ease:'Back.out'}); }
+  showResult(title,body,ended){ this.panelEnded=ended; this.pTitle.textContent=title; this.pBody.textContent=body;
+    this.pBtn.textContent=ended?'New game':'Next hand'; this.panelEl.classList.remove('hidden'); }
   showOver(t){ this.showResult(t,'',true); }
 }
 

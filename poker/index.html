@@ -8,13 +8,43 @@
 <title>Texas Hold'em</title>
 <style>
   html,body{margin:0;width:100%;height:100%;background:#0e1116;overflow:hidden;}
-  *{ -webkit-tap-highlight-color:transparent; }
-  #game{width:100vw;height:100vh;}
-  canvas{display:block;}
+  *{ -webkit-tap-highlight-color:transparent; box-sizing:border-box; }
+  #app{display:flex;flex-direction:column;height:100vh;height:100dvh;}
+  #game{flex:1 1 auto;min-height:0;}
+  canvas{display:block;touch-action:none;}
+  #controls{flex:0 0 auto;display:flex;flex-direction:column;gap:6px;
+    padding:6px 8px calc(8px + env(safe-area-inset-bottom)) 8px;background:#0e1116;}
+  .crow{display:flex;gap:6px;}
+  .btn{flex:1;min-width:0;padding:14px 6px;border:1px solid #283041;border-radius:12px;background:#161b24;
+    color:#e8ecf4;font:700 15px -apple-system,system-ui,sans-serif;cursor:pointer;transition:transform .08s,opacity .15s;}
+  .btn:active{transform:scale(.97);}
+  .btn:disabled{opacity:.3;}
+  #bFold{color:#e98b86;border-color:#3a2a2c;} #bCall{color:#7fe0d6;border-color:#27403d;}
+  #bAllin{color:#e6c976;border-color:#3a3320;}
+  #panel{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(9,12,16,.82);z-index:5;}
+  #panel.hidden{display:none;}
+  #panel .card{background:#11151c;border:1px solid #283041;border-radius:16px;padding:24px 22px;text-align:center;max-width:84vw;}
+  #pTitle{margin:0 0 8px;color:#5ad1c5;font:900 24px system-ui;}
+  #pBody{margin:0 0 16px;color:#e8ecf4;white-space:pre-line;font:14px system-ui;line-height:1.6;}
+  #pBtn{background:#5ad1c5;color:#0e1116;border:0;border-radius:12px;padding:12px 24px;font:800 16px system-ui;cursor:pointer;}
 </style>
 </head>
 <body>
-  <div id="game"></div>
+  <div id="app">
+    <div id="game"></div>
+    <div id="controls">
+      <div class="crow">
+        <button class="btn" id="bFold">Fold</button>
+        <button class="btn" id="bCall">Check</button>
+      </div>
+      <div class="crow">
+        <button class="btn" id="bHalf">½ Pot</button>
+        <button class="btn" id="bPot">Pot</button>
+        <button class="btn" id="bAllin">All-in</button>
+      </div>
+    </div>
+  </div>
+  <div id="panel" class="hidden"><div class="card"><h2 id="pTitle"></h2><p id="pBody"></p><button id="pBtn">Next hand</button></div></div>
   <script src="phaser.min.js"></script>
   <script src="game.js"></script>
 </body>
