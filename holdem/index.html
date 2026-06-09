@@ -201,8 +201,8 @@
   // ---------- render ----------
   const cv=document.getElementById('cv'), ctx=cv.getContext('2d'), stage=document.getElementById('stage');
   let M={};
-  function metrics(){ const W=stage.clientWidth||500, H=Math.round(W*1.12); const dpr=window.devicePixelRatio||1;
-    if(cv.height!==Math.round(H*dpr)){cv.style.height=H+'px';cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);} M={W,H,cw:W*0.118,ch:W*0.118*1.4}; }
+  function metrics(){ const W=stage.clientWidth||500, H=Math.round(W*1.22); const dpr=window.devicePixelRatio||1;
+    if(cv.height!==Math.round(H*dpr)){cv.style.height=H+'px';cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);} M={W,H,m:W*0.03}; }
   function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
   function card(x,y,c,w,h,faded){ rr(x,y,w,h,w*0.13); ctx.fillStyle='#f5f2ea'; ctx.globalAlpha=faded?0.5:1; ctx.fill(); ctx.globalAlpha=1; ctx.lineWidth=1; ctx.strokeStyle='#cabfa6'; ctx.stroke();
     ctx.fillStyle=isRed(c.s)?'#c2413f':'#1d2330'; ctx.textAlign='left'; ctx.textBaseline='top'; ctx.font=`800 ${h*0.30}px system-ui`; ctx.fillText(rankStr(c.r),x+w*0.14,y+h*0.08);
@@ -210,35 +210,45 @@
   function back(x,y,w,h){ rr(x,y,w,h,w*0.13); ctx.fillStyle='#39507a'; ctx.fill(); ctx.fillStyle='#2a3c5e'; rr(x+w*0.16,y+h*0.12,w*0.68,h*0.76,w*0.08); ctx.fill(); }
   function chip(x,y,txt){ ctx.fillStyle='#11151c'; rr(x-2,y-9,ctx.measureText(txt).width+18,18,9); ctx.fill(); ctx.fillStyle='#d8b25a'; ctx.font='700 12px system-ui'; ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillText('●',x+3,y); ctx.fillStyle='#e8ecf4'; ctx.fillText(txt,x+14,y); }
 
-  function seatPos(i){ const {W,H}=M; return [ [W/2,H-M.ch*0.5-6],[M.cw*1.0,H*0.46],[W/2,M.ch*0.7+6],[W-M.cw*1.0,H*0.46] ][i]; }
+  const turnH=i=> toAct===i && players[i].inHand && !players[i].folded && notFolded()>1 && able()>0;
+  function dealerChip(x,y){ ctx.fillStyle='#e8ecf4'; ctx.beginPath(); ctx.arc(x,y,8.5,0,7); ctx.fill(); ctx.fillStyle='#0e1116'; ctx.font='800 10px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('D',x,y+0.5); }
+  function drawBot(p,pi,cx,y,tw,th){
+    const turn=turnH(pi), showFace=revealAll&&!p.folded, tot=tw*2+5, hx=cx-tot/2;
+    ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+    ctx.fillStyle=turn?'#5ad1c5':(p.folded?'#5b6577':'#cdd6e3'); ctx.font='700 12px system-ui'; ctx.fillText(p.name,cx,y-5);
+    if(p.inHand){ for(let k=0;k<2;k++){ const x=hx+k*(tw+5); (p.hole&&p.hole[k]&&showFace)?card(x,y,p.hole[k],tw,th,p.folded):back(x,y,tw,th); } }
+    else { ctx.fillStyle='#3a4150'; ctx.font='700 11px system-ui'; ctx.fillText('out',cx,y+th*0.6); }
+    ctx.textBaseline='alphabetic';
+    ctx.fillStyle=p.folded?'#4c5564':'#9aa3b2'; ctx.font='700 11px system-ui'; ctx.fillText('▮ '+p.stack,cx,y+th+13);
+    if(p.bet>0){ ctx.fillStyle='#d8b25a'; ctx.font='700 11px system-ui'; ctx.fillText('bet '+p.bet,cx,y+th+27); }
+    else if(p.last&&!revealAll){ ctx.fillStyle=turn?'#5ad1c5':'#7c879c'; ctx.font='700 11px system-ui'; ctx.fillText(p.last,cx,y+th+27); }
+    if(pi===button) dealerChip(hx+tot+8,y+th/2);
+    if(turn){ ctx.strokeStyle='#5ad1c5'; ctx.lineWidth=2; rr(hx-6,y-19,tot+12,th+39,10); ctx.stroke(); }
+  }
+  function drawYou(p){
+    const {W,H}=M, tw=W*0.155, th=tw*1.4, tot=tw*2+8, cx=W/2, y=H-th-36, hx=cx-tot/2, turn=turnH(0);
+    ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+    ctx.fillStyle=turn?'#5ad1c5':'#cdd6e3'; ctx.font='800 13px system-ui'; ctx.fillText('You',cx,y-11);
+    if(p.inHand){ for(let k=0;k<2;k++){ const x=hx+k*(tw+8); (p.hole&&p.hole[k])?card(x,y,p.hole[k],tw,th,p.folded):back(x,y,tw,th); } }
+    ctx.fillStyle=p.folded?'#4c5564':'#9aa3b2'; ctx.font='700 12px system-ui'; ctx.fillText('▮ '+p.stack,cx,y+th+17);
+    if(p.bet>0){ ctx.fillStyle='#d8b25a'; ctx.font='700 12px system-ui'; ctx.fillText('bet '+p.bet,cx,y+th+33); }
+    else if(p.last&&!revealAll){ ctx.fillStyle='#7c879c'; ctx.font='700 12px system-ui'; ctx.fillText(p.last,cx,y+th+33); }
+    if(button===0) dealerChip(hx+tot+12,y+th/2);
+    if(turn){ ctx.strokeStyle='#5ad1c5'; ctx.lineWidth=2.5; rr(hx-8,y-25,tot+16,th+52,12); ctx.stroke(); }
+  }
   function draw(){
-    metrics(); const {W,H,cw,ch}=M; ctx.clearRect(0,0,W,H);
-    // felt
-    ctx.fillStyle='#13302708'; rr(W*0.06,H*0.16,W*0.88,H*0.62,W*0.18); ctx.fillStyle='#15342b'; ctx.fill(); ctx.strokeStyle='#1f4a3d'; ctx.lineWidth=2; ctx.stroke();
-    // pot + community
-    ctx.fillStyle='#cdd6e3'; ctx.font='800 14px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('Pot  '+pot(), W/2, H*0.30);
-    const nc=Math.max(community.length,0), tot=5, cw2=cw*0.92, gap=cw2*0.14, gw=tot*cw2+(tot-1)*gap, sx=W/2-gw/2, cy=H*0.40;
-    for(let i=0;i<5;i++){ const x=sx+i*(cw2+gap); if(i<community.length)card(x,cy,community[i],cw2,cw2*1.4); else { rr(x,cy,cw2,cw2*1.4,cw2*0.12); ctx.fillStyle='#11261f'; ctx.fill(); ctx.strokeStyle='#1d4034'; ctx.lineWidth=1; ctx.stroke(); } }
-    // seats
-    for(let i=0;i<N;i++){ const p=players[i]; const [px,py]=seatPos(i); const active=toAct===i&&!busy===false?false:false;
-      const isTurn=(toAct===i)&&p.inHand&&!p.folded&&notFolded()>1&&able()>0;
-      // cards
-      const showFace = p.human || (revealAll&&!p.folded);
-      const tw=cw*0.86, th=tw*1.4, totalW=tw*2+6, hx=px-totalW/2, hy=py-th/2;
-      if(p.inHand){ for(let k=0;k<2;k++){ const x=hx+k*(tw+6); if(p.hole&&p.hole[k]&&showFace)card(x,hy,p.hole[k],tw,th,p.folded); else back(x,hy,tw,th); } }
-      // name plate
-      ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillStyle=isTurn?'#5ad1c5':(p.folded?'#5b6577':'#cdd6e3'); ctx.font='700 12px system-ui';
-      ctx.fillText(p.name+(p.stack===0&&p.inHand?' (all-in)':''), px, hy-12);
-      ctx.fillStyle=p.folded?'#4c5564':'#8a94a6'; ctx.font='700 11px system-ui'; ctx.fillText(p.stack+(p.busted?'':''), px, hy+th+12);
-      // dealer button
-      if(i===button){ ctx.fillStyle='#e8ecf4'; ctx.beginPath(); ctx.arc(px+totalW/2+10,hy+th/2,9,0,7); ctx.fill(); ctx.fillStyle='#0e1116'; ctx.font='800 10px system-ui'; ctx.fillText('D',px+totalW/2+10,hy+th/2+1); }
-      // bet chip
-      if(p.bet>0){ const by=i===0?hy-30:(i===2?hy+th+28:py); ctx.font='700 12px system-ui'; ctx.textAlign='left'; chip(px-14, i===0?hy-30:i===2?hy+th+26:py-30, ''+p.bet); }
-      // last action bubble
-      if(p.last&&p.inHand&&!revealAll){ ctx.fillStyle=isTurn?'#5ad1c5':'#7c879c'; ctx.font='700 11px system-ui'; ctx.textAlign='center'; ctx.fillText(p.last, px, i===0?hy+th+28:hy-26); }
-      if(isTurn){ ctx.strokeStyle='#5ad1c5'; ctx.lineWidth=2; rr(hx-6,hy-22,totalW+12,th+44,12); ctx.stroke(); }
-    }
+    metrics(); const {W,H}=M; ctx.clearRect(0,0,W,H);
+    // felt band (center play area)
+    rr(W*0.04,H*0.30,W*0.92,H*0.40,W*0.10); ctx.fillStyle='#15342b'; ctx.fill(); ctx.strokeStyle='#1f4a3d'; ctx.lineWidth=2; ctx.stroke();
+    // bots across the top
+    const bw=W*0.088, bh=bw*1.4, cols=[W*0.18,W*0.5,W*0.82], topY=M.m+22;
+    [1,2,3].forEach((pi,k)=>drawBot(players[pi],pi,cols[k],topY,bw,bh));
+    // pot + community (center)
+    const cw=Math.min(W*0.135,(W-2*M.m-4*(W*0.02))/5), chh=cw*1.4, gap=W*0.02, gw=5*cw+4*gap, sx=W/2-gw/2, cy=H*0.46;
+    ctx.fillStyle='#cdd6e3'; ctx.font='800 15px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('Pot  '+pot(),W/2,cy-chh*0.62);
+    for(let i=0;i<5;i++){ const x=sx+i*(cw+gap); if(i<community.length)card(x,cy,community[i],cw,chh); else { rr(x,cy,cw,chh,cw*0.12); ctx.fillStyle='#11261f'; ctx.fill(); ctx.strokeStyle='#1d4034'; ctx.lineWidth=1; ctx.stroke(); } }
+    // you (bottom)
+    drawYou(players[0]);
   }
   function setStatus(){ const s=document.getElementById('status'); if(busy&&toAct!==0&&players[toAct]) s.textContent=players[toAct].name+' to act…'; else if(toAct===0&&notFolded()>1) s.textContent='Your turn'; else s.textContent=''; }
 
