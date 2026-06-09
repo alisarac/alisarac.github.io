@@ -111,150 +111,173 @@ function finish(results,shown){
 let S=null;
 function schedule(fn,d){ const g=gen; S.time.delayedCall(d,()=>{ if(g===gen) fn(); }); }
 
-// ===================== Phaser scene =====================
-const DW=1280, DH=720, ACCENT=0x5ad1c5, FELT=0x15342b, FELT_E=0x1f4a3d;
-const SEATS=[ {x:640,y:560,big:true},{x:150,y:330},{x:640,y:120,above:true},{x:1130,y:330} ];
+// ===================== Phaser scene (portrait, responsive via RESIZE) =====================
+const ACCENT=0x5ad1c5, FELT=0x15342b, FELT_E=0x1f4a3d;
 
 class Table extends Phaser.Scene{
   create(){
     S=this;
     this.makeTextures();
-    // felt
-    const g=this.add.graphics();
-    g.fillStyle(FELT,1).lineStyle(3,FELT_E,1);
-    g.fillEllipse(DW/2,330,1120,560); g.strokeEllipse(DW/2,330,1120,560);
-    // pot label
-    this.potText=this.add.text(DW/2,440,'',{fontFamily:'system-ui',fontSize:'30px',fontStyle:'800',color:'#e8ecf4'}).setOrigin(0.5);
-    // community cards
-    this.comm=[]; const cw=96,ch=134,gap=12,gw=5*cw+4*gap,sx=DW/2-gw/2+cw/2;
-    for(let i=0;i<5;i++){ const c=this.makeCard(sx+i*(cw+gap),300,cw,ch); this.comm.push(c); }
-    // seats
-    this.seats=SEATS.map((s,i)=>this.makeSeat(i,s));
-    // controls
+    this.felt=this.add.graphics();
+    this.potText=this.add.text(0,0,'',{fontFamily:'system-ui',fontStyle:'800',color:'#e8ecf4'}).setOrigin(0.5);
+    this.comm=[]; for(let i=0;i<5;i++) this.comm.push(this.makeCard());
+    this.seats=[0,1,2,3].map(i=>this.makeSeat(i));
     this.makeControls();
-    // result panel
     this.makeResultPanel();
+    this.layout();
+    this.scale.on('resize',()=>{ this.layout(); this.refresh(); });
     this.noAnim = location.hash.includes('static')||location.hash.includes('demo');
     newGame();
     if(location.hash.includes('demo')){ gen++; community=[{r:14,s:0},{r:11,s:1},{r:7,s:2},{r:3,s:2},{r:9,s:3}]; players[0].hole=[{r:14,s:1},{r:7,s:1}]; players[0].bet=40;players[0].last='Call 40'; players[1].folded=true;players[1].last='Fold'; players[2].bet=40;players[2].last='Raise 40'; players[3].bet=20;players[3].last='Call 20'; toAct=0; street=3; this.enableControls(); this.refresh(); }
     else if(location.hash.includes('static')){ gen++; this.refresh(); }
   }
 
+  W(){ return this.scale.width||window.innerWidth; }
+  H(){ return this.scale.height||window.innerHeight; }
+
   makeTextures(){
-    // card face
     let g=this.make.graphics({x:0,y:0,add:false});
     g.fillStyle(0xf5f2ea,1).fillRoundedRect(0,0,184,256,20); g.lineStyle(3,0xcabfa6,1).strokeRoundedRect(1,1,182,254,20);
     g.generateTexture('face',184,256); g.destroy();
-    // card back
     g=this.make.graphics({x:0,y:0,add:false});
     g.fillStyle(0x39507a,1).fillRoundedRect(0,0,184,256,20); g.fillStyle(0x2a3c5e,1).fillRoundedRect(26,28,132,200,14);
     g.generateTexture('back',184,256); g.destroy();
-    // dealer button
-    g=this.make.graphics({x:0,y:0,add:false});
-    g.fillStyle(0xe8ecf4,1).fillCircle(18,18,18); g.generateTexture('dealer',36,36); g.destroy();
   }
 
-  makeCard(x,y,w,h){
-    const cont=this.add.container(x,y);
-    const bg=this.add.image(0,0,'face').setDisplaySize(w,h);
-    const rank=this.add.text(-w/2+w*0.14,-h/2+h*0.07,'',{fontFamily:'system-ui',fontStyle:'800',fontSize:`${Math.round(h*0.26)}px`}).setOrigin(0,0);
-    const suit=this.add.text(0,h*0.08,'',{fontFamily:'system-ui',fontSize:`${Math.round(h*0.34)}px`}).setOrigin(0.5);
-    cont.add([bg,rank,suit]); cont.setSize(w,h); cont.bg=bg; cont.rank=rank; cont.suit=suit; cont.cw=w; cont.ch=h;
-    cont.setVisible(false);
+  makeCard(){
+    const cont=this.add.container(0,0);
+    const bg=this.add.image(0,0,'face');
+    const rank=this.add.text(0,0,'',{fontFamily:'system-ui',fontStyle:'800'}).setOrigin(0,0);
+    const suit=this.add.text(0,0,'',{fontFamily:'system-ui'}).setOrigin(0.5);
+    cont.add([bg,rank,suit]); cont.bg=bg; cont.rank=rank; cont.suit=suit; cont.setVisible(false);
+    cont.size=(w,h)=>{ cont.cw=w; cont.ch=h; bg.setDisplaySize(w,h);
+      rank.setFontSize(Math.max(11,Math.round(h*0.26))).setPosition(-w/2+w*0.13,-h/2+h*0.05);
+      suit.setFontSize(Math.max(13,Math.round(h*0.36))).setPosition(0,h*0.06); };
     cont.set=(card,faceUp,faded)=>{
       if(!card){cont.setVisible(false);return;}
       cont.setVisible(true); cont.setAlpha(faded?0.5:1);
       if(faceUp){ bg.setTexture('face'); const col=isRed(card.s)?'#c2413f':'#1d2330';
-        rank.setText(rankStr(card.r)).setColor(col).setVisible(true);
-        suit.setText(SUITS[card.s]).setColor(col).setVisible(true);
+        rank.setText(rankStr(card.r)).setColor(col).setVisible(true); suit.setText(SUITS[card.s]).setColor(col).setVisible(true);
       } else { bg.setTexture('back'); rank.setVisible(false); suit.setVisible(false); }
     };
     return cont;
   }
 
-  makeSeat(i,s){
-    const cw=s.big?96:78, ch=cw*1.4;
-    const cont=this.add.container(s.x,s.y);
-    const c1=this.makeCard(-(cw/2+3),0,cw,ch), c2=this.makeCard(cw/2+3,0,cw,ch);
-    const name=this.add.text(0,-ch/2-12,'',{fontFamily:'system-ui',fontStyle:'700',fontSize:'19px',color:'#cdd6e3'}).setOrigin(0.5);
-    const yOff=s.above? -ch/2-32 : ch/2+14;
-    const info=this.add.text(0,yOff,'',{fontFamily:'system-ui',fontStyle:'700',fontSize:'17px',color:'#9aa3b2'}).setOrigin(0.5);
+  makeSeat(i){
+    const cont=this.add.container(0,0);
     const ring=this.add.graphics();
-    const dealer=this.add.image(0,0,'dealer').setVisible(false);
-    const dtext=this.add.text(0,0,'D',{fontFamily:'system-ui',fontStyle:'800',fontSize:'15px',color:'#0e1116'}).setOrigin(0.5).setVisible(false);
-    cont.add([ring,c1,c2,name,info,dealer,dtext]);
-    return {cont,c1,c2,name,info,ring,dealer,dtext,cw,ch,above:s.above,x:s.x,y:s.y};
+    const c1=this.makeCard(), c2=this.makeCard();
+    const name=this.add.text(0,0,'',{fontFamily:'system-ui',fontStyle:'700',color:'#cdd6e3'}).setOrigin(0.5);
+    const info=this.add.text(0,0,'',{fontFamily:'system-ui',fontStyle:'700',color:'#9aa3b2'}).setOrigin(0.5);
+    const dealer=this.add.container(0,0); const dg=this.add.graphics(); dg.fillStyle(0xe8ecf4,1).fillCircle(0,0,11);
+    const dt=this.add.text(0,0,'D',{fontFamily:'system-ui',fontStyle:'800',fontSize:'14px',color:'#0e1116'}).setOrigin(0.5);
+    dealer.add([dg,dt]); dealer.setVisible(false);
+    cont.add([ring,c1,c2,name,info,dealer]);
+    return {cont,c1,c2,name,info,ring,dealer};
   }
 
   makeControls(){
     this.btns={};
-    const defs=[ ['fold','Fold',0x3a2a2c,'#e98b86'], ['call','Check',0x27403d,'#7fe0d6'],
-                 ['half','½ Pot',0x283041,'#e8ecf4'], ['potb','Pot',0x283041,'#e8ecf4'], ['allin','All-in',0x3a3320,'#e6c976'] ];
-    const w=232, h=64, gap=14, total=defs.length*w+(defs.length-1)*gap, sx=DW/2-total/2+w/2, y=680;
-    defs.forEach((d,i)=>{
-      const x=sx+i*(w+gap), cont=this.add.container(x,y);
-      const g=this.add.graphics(); g.fillStyle(0x161b24,1).fillRoundedRect(-w/2,-h/2,w,h,14); g.lineStyle(1,d[2],1).strokeRoundedRect(-w/2,-h/2,w,h,14);
-      const t=this.add.text(0,0,d[1],{fontFamily:'system-ui',fontStyle:'700',fontSize:'24px',color:d[3]}).setOrigin(0.5);
-      cont.add([g,t]); cont.setSize(w,h).setInteractive(new Phaser.Geom.Rectangle(-w/2,-h/2,w,h),Phaser.Geom.Rectangle.Contains);
-      cont.label=t;
-      cont.on('pointerdown',()=>this.onBtn(d[0]));
-      this.btns[d[0]]=cont;
-    });
+    const mk=(key,label,stroke,color)=>{ const cont=this.add.container(0,0);
+      const g=this.add.graphics(); const t=this.add.text(0,0,label,{fontFamily:'system-ui',fontStyle:'700',color}).setOrigin(0.5);
+      cont.add([g,t]); cont.g=g; cont.label=t; cont.stroke=stroke;
+      cont.on('pointerdown',()=>this.onBtn(key)); this.btns[key]=cont; };
+    mk('fold','Fold',0x3a2a2c,'#e98b86'); mk('call','Check',0x27403d,'#7fe0d6');
+    mk('half','½ Pot',0x283041,'#e8ecf4'); mk('potb','Pot',0x283041,'#e8ecf4'); mk('allin','All-in',0x3a3320,'#e6c976');
     this.disableControls();
   }
+  setBox(b,x,y,w,h){ b.setPosition(x,y); b.g.clear(); b.g.fillStyle(0x161b24,1).fillRoundedRect(-w/2,-h/2,w,h,12); b.g.lineStyle(1,b.stroke,1).strokeRoundedRect(-w/2,-h/2,w,h,12);
+    b.label.setFontSize(Math.max(13,Math.round(h*0.34))); b.setSize(w,h).setInteractive(new Phaser.Geom.Rectangle(-w/2,-h/2,w,h),Phaser.Geom.Rectangle.Contains); }
+
   makeResultPanel(){
-    this.panel=this.add.container(DW/2,330).setDepth(50).setVisible(false);
-    const g=this.add.graphics(); g.fillStyle(0x090c10,0.9).fillRoundedRect(-330,-120,660,240,20); g.lineStyle(2,0x283041,1).strokeRoundedRect(-330,-120,660,240,20);
-    this.panelTitle=this.add.text(0,-70,'',{fontFamily:'system-ui',fontStyle:'900',fontSize:'34px',color:'#5ad1c5'}).setOrigin(0.5);
-    this.panelBody=this.add.text(0,5,'',{fontFamily:'system-ui',fontSize:'19px',color:'#e8ecf4',align:'center',lineSpacing:8}).setOrigin(0.5);
-    const bw=200,bh=56; const btn=this.add.container(0,80);
-    const bg=this.add.graphics(); bg.fillStyle(0x5ad1c5,1).fillRoundedRect(-bw/2,-bh/2,bw,bh,12);
-    this.panelBtnText=this.add.text(0,0,'Next hand',{fontFamily:'system-ui',fontStyle:'800',fontSize:'22px',color:'#0e1116'}).setOrigin(0.5);
-    btn.add([bg,this.panelBtnText]); btn.setSize(bw,bh).setInteractive(new Phaser.Geom.Rectangle(-bw/2,-bh/2,bw,bh),Phaser.Geom.Rectangle.Contains);
-    btn.on('pointerdown',()=>{ this.panel.setVisible(false); if(this.panelEnded) newGame(); else newHand(); });
-    this.panel.add([g,this.panelTitle,this.panelBody,btn]);
+    this.panel=this.add.container(0,0).setDepth(50).setVisible(false);
+    this.panelG=this.add.graphics();
+    this.panelTitle=this.add.text(0,0,'',{fontFamily:'system-ui',fontStyle:'900',color:'#5ad1c5',align:'center'}).setOrigin(0.5);
+    this.panelBody=this.add.text(0,0,'',{fontFamily:'system-ui',color:'#e8ecf4',align:'center',lineSpacing:7}).setOrigin(0.5);
+    this.panelBtn=this.add.container(0,0); this.panelBtnG=this.add.graphics();
+    this.panelBtnText=this.add.text(0,0,'Next hand',{fontFamily:'system-ui',fontStyle:'800',color:'#0e1116'}).setOrigin(0.5);
+    this.panelBtn.add([this.panelBtnG,this.panelBtnText]);
+    this.panelBtn.on('pointerdown',()=>{ this.panel.setVisible(false); if(this.panelEnded) newGame(); else newHand(); });
+    this.panel.add([this.panelG,this.panelTitle,this.panelBody,this.panelBtn]);
   }
 
-  // ---- engine callbacks ----
+  // ---------------- responsive layout ----------------
+  layout(){
+    const w=this.W(), h=this.H();
+    this.felt.clear();
+    this.felt.fillStyle(FELT,1).fillRoundedRect(w*0.03,h*0.05,w*0.94,h*0.78,w*0.06);
+    this.felt.lineStyle(2,FELT_E,1).strokeRoundedRect(w*0.03,h*0.05,w*0.94,h*0.78,w*0.06);
+    // community
+    const cw=Math.min(w*0.155,h*0.085), ch=cw*1.4, gap=cw*0.16, gw=5*cw+4*gap, sx=w/2-gw/2+cw/2, cy=h*0.42;
+    this.comm.forEach((c,i)=>{ c.size(cw,ch); c.setPosition(sx+i*(cw+gap),cy); });
+    this.potText.setFontSize(Math.max(15,Math.round(w*0.05))).setPosition(w/2,cy+ch/2+h*0.035);
+    this.commGeo={cw,ch,cy};
+    // seats: bots across the top, You at the bottom
+    const sCW=Math.min(w*0.13,h*0.07), yCW=Math.min(w*0.17,h*0.092);
+    this.layoutSeat(1, w*0.20, h*0.15, sCW);
+    this.layoutSeat(2, w*0.50, h*0.15, sCW);
+    this.layoutSeat(3, w*0.80, h*0.15, sCW);
+    this.layoutSeat(0, w*0.50, h*0.65, yCW);
+    // controls — two rows below the felt
+    const bh=Math.min(h*0.062,w*0.13), m=w*0.025;
+    const w1=(w-3*m)/2, y1=h*0.875;
+    this.setBox(this.btns.fold, m+w1/2, y1, w1, bh);
+    this.setBox(this.btns.call, m*2+w1*1.5, y1, w1, bh);
+    const w2=(w-4*m)/3, y2=h*0.955;
+    ['half','potb','allin'].forEach((k,j)=>this.setBox(this.btns[k], m+w2/2+j*(w2+m), y2, w2, bh));
+    // result panel
+    const pw=Math.min(w*0.9,520), ph=Math.min(h*0.42,300);
+    this.panel.setPosition(w/2,h*0.45);
+    this.panelG.clear(); this.panelG.fillStyle(0x090c10,0.92).fillRoundedRect(-pw/2,-ph/2,pw,ph,18).lineStyle(2,0x283041,1).strokeRoundedRect(-pw/2,-ph/2,pw,ph,18);
+    this.panelTitle.setFontSize(Math.round(w*0.07)).setPosition(0,-ph*0.32);
+    this.panelBody.setFontSize(Math.round(w*0.04)).setPosition(0,-ph*0.02).setWordWrapWidth(pw*0.85);
+    const pbw=Math.min(pw*0.5,200), pbh=ph*0.2; this.panelBtn.setPosition(0,ph*0.32);
+    this.panelBtnG.clear(); this.panelBtnG.fillStyle(0x5ad1c5,1).fillRoundedRect(-pbw/2,-pbh/2,pbw,pbh,12);
+    this.panelBtnText.setFontSize(Math.round(pbh*0.42)); this.panelBtn.setSize(pbw,pbh).setInteractive(new Phaser.Geom.Rectangle(-pbw/2,-pbh/2,pbw,pbh),Phaser.Geom.Rectangle.Contains);
+  }
+  layoutSeat(i,x,y,cw){
+    const s=this.seats[i], ch=cw*1.4, fs=Math.max(11,Math.round(cw*0.32));
+    s.cont.setPosition(x,y); s.cw=cw; s.ch=ch;
+    s.c1.size(cw,ch); s.c1.setPosition(-(cw/2+3),0); s.c2.size(cw,ch); s.c2.setPosition(cw/2+3,0);
+    s.name.setFontSize(fs).setPosition(0,-ch/2-fs*0.85);
+    s.info.setFontSize(Math.max(10,Math.round(cw*0.27))).setPosition(0,ch/2+fs*0.78);
+    const side=x>this.W()/2?-1:1; s.dealer.setPosition(side*(cw+16),0);
+  }
+
+  // ---------------- engine callbacks ----------------
   onNewHand(){
     this.panel.setVisible(false);
     for(const c of this.comm){ c.set(null); c._shown=false; }
     this.refresh();
     if(this.noAnim) return;
-    // robust deal: cards sit at their seat, scale/fade in (position is always correct)
     this.seats.forEach((seat,i)=>{ [seat.c1,seat.c2].forEach((c,k)=>{ if(!c.visible)return;
-      c.setScale(0.7).setAlpha(0); this.tweens.add({targets:c,scale:1,alpha:1,duration:260,delay:(i*2+k)*60,ease:'Back.out'}); }); });
+      c.setScale(0.7).setAlpha(0); this.tweens.add({targets:c,scale:1,alpha:1,duration:240,delay:(i*2+k)*55,ease:'Back.out'}); }); });
   }
   onCommunity(){
     this.refresh();
     if(this.noAnim) return;
     for(let i=0;i<5;i++){ const c=this.comm[i];
-      if(i<community.length && !c._shown){ c._shown=true; c.setScale(0.6).setAlpha(0); this.tweens.add({targets:c,scale:1,alpha:1,duration:260,delay:i*60,ease:'Back.out'}); }
-      if(i>=community.length) c._shown=false;
-    }
+      if(i<community.length && !c._shown){ c._shown=true; c.setScale(0.6).setAlpha(0); this.tweens.add({targets:c,scale:1,alpha:1,duration:240,delay:i*55,ease:'Back.out'}); }
+      if(i>=community.length) c._shown=false; }
   }
-  flashAction(i){ const seat=this.seats[i]; this.tweens.add({targets:seat.cont,scale:{from:1.04,to:1},duration:180}); }
+  flashAction(i){ this.tweens.add({targets:this.seats[i].cont,scale:{from:1.05,to:1},duration:170}); }
 
   refresh(){
-    document.getElementById('rotate'); // noop ref
     this.potText.setText('Pot  '+pot());
-    for(let i=0;i<5;i++) this.comm[i].set(i<community.length?community[i]:null, true);
+    for(let i=0;i<5;i++) this.comm[i].set(i<community.length?community[i]:null,true);
     this.seats.forEach((seat,i)=>{
       const p=players[i], turn=(toAct===i)&&p.inHand&&!p.folded&&notFolded()>1&&able()>0;
       const showFace=(i===0)||(revealAll&&!p.folded);
-      seat.c1.set(p.inHand?p.hole[0]:null, showFace, p.folded); seat.c2.set(p.inHand?p.hole[1]:null, showFace, p.folded);
+      seat.c1.set(p.inHand?p.hole[0]:null,showFace,p.folded); seat.c2.set(p.inHand?p.hole[1]:null,showFace,p.folded);
       seat.name.setText(i===0?'You':p.name).setColor(turn?'#5ad1c5':(p.folded?'#5b6577':'#cdd6e3'));
-      let info=''; let col='#9aa3b2';
-      if(p.bet>0){ info='bet '+p.bet; col='#d8b25a'; }
+      let info='▮ '+p.stack, col='#9aa3b2';
+      if(p.folded){ info='Fold'; col='#5b6577'; }
+      else if(p.bet>0){ info='bet '+p.bet; col='#d8b25a'; }
       else if(p.last&&!revealAll){ info=p.last; col=turn?'#5ad1c5':'#7c879c'; }
-      else info='▮ '+p.stack;
       seat.info.setText(p.inHand?info:'out').setColor(col);
-      // dealer button toward table center
-      const side=seat.x>DW/2?-1:1, dx=side*(seat.cw+18), dy=0;
-      seat.dealer.setVisible(i===button).setPosition(dx,dy); seat.dtext.setVisible(i===button).setPosition(dx,dy);
-      // turn ring
+      seat.dealer.setVisible(i===button);
       seat.ring.clear();
-      if(turn){ seat.ring.lineStyle(3,ACCENT,1); seat.ring.strokeRoundedRect(-(seat.cw+10),-(seat.ch/2+14),(seat.cw+10)*2,seat.ch+ (seat.above?56:54),12); }
+      if(turn){ const cw=seat.cw||40, ch=seat.ch||56; seat.ring.lineStyle(3,ACCENT,1).strokeRoundedRect(-(cw+9),-(ch/2+Math.round(cw*0.34)+6),(cw+9)*2,ch+Math.round(cw*0.34)*2+12,10); }
     });
   }
 
@@ -263,21 +286,18 @@ class Table extends Phaser.Scene{
     const p=players[0], cc=currentBet-p.bet;
     this.showBtn('fold',true); this.showBtn('call',true);
     this.btns.call.label.setText(cc<=0?'Check':('Call '+Math.min(cc,p.stack)));
-    const canRaise=able()>1 && p.stack>Math.max(0,cc);
-    const potNow=pot();
-    this.raiseAmt={ half:Math.min(p.bet+p.stack, currentBet+Math.max(minRaise,Math.round(potNow*0.5))),
-                    potb:Math.min(p.bet+p.stack, currentBet+Math.max(minRaise,potNow)),
-                    allin:p.bet+p.stack };
+    const canRaise=able()>1 && p.stack>Math.max(0,cc), pn=pot();
+    this.raiseAmt={ half:Math.min(p.bet+p.stack,currentBet+Math.max(minRaise,Math.round(pn*0.5))),
+                    potb:Math.min(p.bet+p.stack,currentBet+Math.max(minRaise,pn)), allin:p.bet+p.stack };
     this.showBtn('half',canRaise && this.raiseAmt.half<this.raiseAmt.allin);
     this.showBtn('potb',canRaise && this.raiseAmt.potb<this.raiseAmt.allin);
     this.showBtn('allin',canRaise);
   }
   disableControls(){ for(const k in this.btns) this.showBtn(k,false); }
-  showBtn(k,on){ const b=this.btns[k]; if(!b)return; b.setVisible(on); b.input&&(b.input.enabled=on); b.setAlpha(on?1:0.001); }
+  showBtn(k,on){ const b=this.btns[k]; if(!b)return; b.setVisible(on); if(b.input)b.input.enabled=on; }
   onBtn(k){
     if(busy||toAct!==0) return;
-    const p=players[0], cc=currentBet-p.bet;
-    let act;
+    const p=players[0], cc=currentBet-p.bet; let act;
     if(k==='fold') act={type:'fold'};
     else if(k==='call') act={type:cc<=0?'check':'call'};
     else if(k==='half') act={type:'raise',amount:this.raiseAmt.half};
@@ -288,12 +308,13 @@ class Table extends Phaser.Scene{
     const raised=applyAction(p,act); this.flashAction(0); afterAct(p,raised);
   }
   showResult(title,body,ended){ this.panelEnded=ended; this.panelTitle.setText(title); this.panelBody.setText(body);
-    this.panelBtnText.setText(ended?'New game':'Next hand'); this.panel.setVisible(true).setScale(0.9); this.tweens.add({targets:this.panel,scale:1,duration:200,ease:'Back.out'}); }
+    this.panelBtnText.setText(ended?'New game':'Next hand'); this.panel.setVisible(true).setScale(0.9);
+    this.tweens.add({targets:this.panel,scale:1,duration:200,ease:'Back.out'}); }
   showOver(t){ this.showResult(t,'',true); }
 }
 
 new Phaser.Game({
   type: Phaser.AUTO, backgroundColor:'#0e1116',
-  scale:{ mode:Phaser.Scale.FIT, autoCenter:Phaser.Scale.CENTER_BOTH, parent:'game', width:DW, height:DH },
+  scale:{ mode:Phaser.Scale.RESIZE, parent:'game', width:'100%', height:'100%' },
   scene:[Table]
 });
