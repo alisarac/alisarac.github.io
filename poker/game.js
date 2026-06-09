@@ -6,6 +6,8 @@
 const SUITS = ['♠', '♥', '♦', '♣'];
 const rankStr = r => r === 14 ? 'A' : r === 13 ? 'K' : r === 12 ? 'Q' : r === 11 ? 'J' : r === 10 ? '10' : String(r);
 const isRed = s => s === 1 || s === 2;
+const cid = c => c.s*13+c.r;
+function rrect(x,X,Y,w,h,r){ x.beginPath(); x.moveTo(X+r,Y); x.arcTo(X+w,Y,X+w,Y+h,r); x.arcTo(X+w,Y+h,X,Y+h,r); x.arcTo(X,Y+h,X,Y,r); x.arcTo(X,Y,X+w,Y,r); x.closePath(); }
 function evaluate5(cs){const ranks=cs.map(c=>c.r).sort((a,b)=>b-a);const flush=cs.every(c=>c.s===cs[0].s);const uniq=[...new Set(ranks)];let sh=0;if(uniq.length===5){if(ranks[0]-ranks[4]===4)sh=ranks[0];else if(ranks[0]===14&&ranks[1]===5&&ranks[4]===2)sh=5;}const cnt={};for(const r of ranks)cnt[r]=(cnt[r]||0)+1;const g=Object.entries(cnt).map(([r,c])=>[c,+r]).sort((a,b)=>b[0]-a[0]||b[1]-a[1]);const co=g.map(x=>x[0]),kr=g.map(x=>x[1]);if(sh&&flush)return[8,sh];if(co[0]===4)return[7,kr[0],kr[1]];if(co[0]===3&&co[1]===2)return[6,kr[0],kr[1]];if(flush)return[5,...ranks];if(sh)return[4,sh];if(co[0]===3)return[3,kr[0],kr[1],kr[2]];if(co[0]===2&&co[1]===2)return[2,kr[0],kr[1],kr[2]];if(co[0]===2)return[1,kr[0],kr[1],kr[2],kr[3]];return[0,...ranks];}
 const cmp=(a,b)=>{const n=Math.max(a.length,b.length);for(let i=0;i<n;i++){const x=a[i]||0,y=b[i]||0;if(x!==y)return x-y;}return 0;};
 function evaluate7(cs){let best=null;for(let a=0;a<7;a++)for(let b=a+1;b<7;b++){const f=cs.filter((_,i)=>i!==a&&i!==b);const s=evaluate5(f);if(!best||cmp(s,best)>0)best=s;}return best;}
@@ -117,7 +119,7 @@ const ACCENT=0x5ad1c5, FELT=0x15342b, FELT_E=0x1f4a3d;
 class Table extends Phaser.Scene{
   create(){
     S=this;
-    this.makeTextures();
+    this.makeCardTextures();
     this.felt=this.add.graphics();
     this.potText=this.add.text(0,0,'',{fontFamily:'system-ui',fontStyle:'800',color:'#e8ecf4'}).setOrigin(0.5);
     this.comm=[]; for(let i=0;i<5;i++) this.comm.push(this.makeCard());
@@ -135,30 +137,31 @@ class Table extends Phaser.Scene{
   W(){ return this.scale.width||window.innerWidth; }
   H(){ return this.scale.height||window.innerHeight; }
 
-  makeTextures(){
-    let g=this.make.graphics({x:0,y:0,add:false});
-    g.fillStyle(0xf5f2ea,1).fillRoundedRect(0,0,184,256,20); g.lineStyle(3,0xcabfa6,1).strokeRoundedRect(1,1,182,254,20);
-    g.generateTexture('face',184,256); g.destroy();
-    g=this.make.graphics({x:0,y:0,add:false});
-    g.fillStyle(0x39507a,1).fillRoundedRect(0,0,184,256,20); g.fillStyle(0x2a3c5e,1).fillRoundedRect(26,28,132,200,14);
-    g.generateTexture('back',184,256); g.destroy();
+  makeCardTextures(){
+    // Bake every card face (and the back) into a texture once → cards are single Images,
+    // zero live Text objects, so steady-state rendering is cheap.
+    const TW=200, TH=280;
+    const base=fill=>{ const c=document.createElement('canvas'); c.width=TW; c.height=TH; const x=c.getContext('2d'); rrect(x,4,4,TW-8,TH-8,22); x.fillStyle=fill; x.fill(); return {c,x}; };
+    if(this.textures.exists('back')) this.textures.remove('back');
+    { const {c,x}=base('#39507a'); rrect(x,TW*0.16,TH*0.12,TW*0.68,TH*0.76,14); x.fillStyle='#2a3c5e'; x.fill(); this.textures.addCanvas('back',c); }
+    for(let s=0;s<4;s++)for(let r=2;r<=14;r++){
+      const {c,x}=base('#f5f2ea'); x.lineWidth=4; x.strokeStyle='#cabfa6'; rrect(x,4,4,TW-8,TH-8,22); x.stroke();
+      x.fillStyle=isRed(s)?'#c2413f':'#1d2330';
+      x.textAlign='left'; x.textBaseline='top'; x.font='800 '+Math.round(TH*0.25)+'px system-ui'; x.fillText(rankStr(r),TW*0.13,TH*0.07);
+      x.textAlign='center'; x.textBaseline='middle'; x.font=Math.round(TH*0.4)+'px system-ui'; x.fillText(SUITS[s],TW/2,TH*0.6);
+      const key='c'+(s*13+r); if(this.textures.exists(key))this.textures.remove(key); this.textures.addCanvas(key,c);
+    }
   }
 
   makeCard(){
     const cont=this.add.container(0,0);
-    const bg=this.add.image(0,0,'face');
-    const rank=this.add.text(0,0,'',{fontFamily:'system-ui',fontStyle:'800'}).setOrigin(0,0);
-    const suit=this.add.text(0,0,'',{fontFamily:'system-ui'}).setOrigin(0.5);
-    cont.add([bg,rank,suit]); cont.bg=bg; cont.rank=rank; cont.suit=suit; cont.setVisible(false);
-    cont.size=(w,h)=>{ cont.cw=w; cont.ch=h; bg.setDisplaySize(w,h);
-      rank.setFontSize(Math.max(11,Math.round(h*0.26))).setPosition(-w/2+w*0.13,-h/2+h*0.05);
-      suit.setFontSize(Math.max(13,Math.round(h*0.36))).setPosition(0,h*0.06); };
+    const img=this.add.image(0,0,'back');
+    cont.add(img); cont.img=img; cont.setVisible(false);
+    cont.size=(w,h)=>{ cont.cw=w; cont.ch=h; img.setDisplaySize(w,h); };
     cont.set=(card,faceUp,faded)=>{
       if(!card){cont.setVisible(false);return;}
       cont.setVisible(true); cont.setAlpha(faded?0.5:1);
-      if(faceUp){ bg.setTexture('face'); const col=isRed(card.s)?'#c2413f':'#1d2330';
-        rank.setText(rankStr(card.r)).setColor(col).setVisible(true); suit.setText(SUITS[card.s]).setColor(col).setVisible(true);
-      } else { bg.setTexture('back'); rank.setVisible(false); suit.setVisible(false); }
+      img.setTexture(faceUp?('c'+cid(card)):'back'); img.setDisplaySize(cont.cw||40,cont.ch||56);
     };
     return cont;
   }
@@ -315,6 +318,8 @@ class Table extends Phaser.Scene{
 
 new Phaser.Game({
   type: Phaser.AUTO, backgroundColor:'#0e1116',
+  fps:{ target:30, forceSetTimeOut:true },          // turn-based: 30fps is plenty, halves idle GPU load
+  render:{ roundPixels:true, powerPreference:'low-power' },
   scale:{ mode:Phaser.Scale.RESIZE, parent:'game', width:'100%', height:'100%' },
   scene:[Table]
 });
