@@ -1,20 +1,370 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="tr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ali Sarac</title>
-  <style>
-    body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 640px;
-           margin: 80px auto; padding: 0 20px; color: #1a1a1a; line-height: 1.6; }
-    a { color: #0D5C2D; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ali Saraç — yazılım mühendisi, İstanbul</title>
+<meta name="description" content="Her biri bir soruyla başlayıp Google Play'de biten sekiz uygulama: beşi telefon, üçü Wear OS, hepsi çevrimdışı çalışıyor. Her birinin neden ve nasıl yapıldığını anlatan bir sayfası var.">
+<link rel="canonical" href="https://alisrc.com/">
+<link rel="alternate" hreflang="tr" href="https://alisrc.com/">
+<link rel="alternate" hreflang="en" href="https://alisrc.com/en.html">
+<link rel="alternate" hreflang="x-default" href="https://alisrc.com/">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="alisrc.com">
+<meta property="og:locale" content="tr_TR">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:url" content="https://alisrc.com/">
+<meta property="og:title" content="Ali Saraç — yazılım mühendisi, İstanbul">
+<meta property="og:description" content="Google Play'de sekiz uygulama: üçü Wear OS'ta, hepsi çevrimdışı çalışıyor. Tasarımdan altyapıya tek elden.">
+<meta property="og:image" content="https://alisrc.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Ali Saraç — yazılım mühendisi, İstanbul">
+<meta name="twitter:card" content="summary_large_image">
+
+<!--jsonld:start-->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "Ali Saraç",
+  "url": "https://alisrc.com/",
+  "jobTitle": "Yazılım mühendisi",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "İstanbul",
+    "addressCountry": "TR"
+  },
+  "email": "mailto:alisarac@gmail.com",
+  "sameAs": [
+    "https://github.com/alisarac",
+    "https://www.linkedin.com/in/alisarac"
+  ],
+  "alumniOf": {
+    "@type": "CollegeOrUniversity",
+    "name": "Boğaziçi Üniversitesi"
+  },
+  "knowsAbout": [
+    "Flutter",
+    "Kotlin",
+    "Wear OS",
+    "Next.js",
+    "Python",
+    "PostgreSQL",
+    "AWS"
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "Yayındakiler",
+  "numberOfItems": 8,
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "url": "https://alisrc.com/u/fiskos.html",
+      "name": "Fiskos"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "url": "https://alisrc.com/u/arkana.html",
+      "name": "Arkana"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "url": "https://alisrc.com/u/kopuzname.html",
+      "name": "Kopuznâme"
+    },
+    {
+      "@type": "ListItem",
+      "position": 4,
+      "url": "https://alisrc.com/u/damga.html",
+      "name": "Damga"
+    },
+    {
+      "@type": "ListItem",
+      "position": 5,
+      "url": "https://alisrc.com/u/koz.html",
+      "name": "KOZ"
+    },
+    {
+      "@type": "ListItem",
+      "position": 6,
+      "url": "https://alisrc.com/u/kiln.html",
+      "name": "Kiln"
+    },
+    {
+      "@type": "ListItem",
+      "position": 7,
+      "url": "https://alisrc.com/u/encke.html",
+      "name": "Encke"
+    },
+    {
+      "@type": "ListItem",
+      "position": 8,
+      "url": "https://alisrc.com/u/tumbler.html",
+      "name": "Tumbler"
+    }
+  ]
+}
+</script>
+<!--jsonld:end-->
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#e8ebe8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#151a1b" media="(prefers-color-scheme: dark)">
+
+<script>
+/* Apply the stored theme before first paint so the page never flashes. */
+(function () {
+  try {
+    var t = localStorage.getItem("theme");
+    if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+})();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,SOFT,WONK,wght@9..144,0..100,0..1,400..900&family=Source+Serif+4:opsz,wght@8..60,400..600&display=swap">
+<link rel="stylesheet" href="/site.css">
 </head>
+
 <body>
-  <h1>Ali Sarac</h1>
-  <ul>
-    <li><a href="/arcade/">Arcade — play my games</a></li>
-    <li><a href="/alisblackjack/">Alis Blackjack — Privacy Policy</a></li>
-  </ul>
+<a class="skip" href="#yayindakiler">İçeriğe geç</a>
+
+<header class="masthead wrap">
+  <div class="masthead__top">
+    <h1 class="wordmark">Ali Saraç<span class="wordmark__role">Yazılım mühendisi, İstanbul</span></h1>
+    <div class="controls">
+      <nav class="lang" aria-label="Dil">
+        <span aria-current="true">TR</span>
+        <span class="lang__sep" aria-hidden="true">/</span>
+        <a href="/en.html" hreflang="en" lang="en">EN</a>
+      </nav>
+      <button class="theme-btn" id="theme-toggle" type="button" hidden>
+        <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <circle cx="8" cy="8" r="6.6" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+          <path d="M8 1.4a6.6 6.6 0 0 0 0 13.2z" fill="currentColor"></path>
+        </svg>
+        Tema
+      </button>
+    </div>
+  </div>
+
+  <p class="lede">
+    Her biri bir soruyla başladı: eski bir oyun bilgisayarında yerel görsel
+    üretimi nereye kadar gider, bir oyunun bütün görselleri nasıl tek elden
+    çıkmış gibi durur, saatin çerçevesi ok tuşunu taklit etmeden ne yapabilir.
+    <strong>Hiçbiri deneme olarak kalmadı, sekizi de mağazada.</strong> Ürün
+    kararı, tasarım, kod, altyapı ve mağaza süreci bana ait; tam zamanlı bir
+    işim var, bunlar kalan zamanda çıktı.
+  </p>
+
+  <div class="proof">
+    <ul class="proof__strip" id="proof-strip">
+<!--proof:start-->
+    <li><a class="tile tile--sm" href="/u/fiskos.html" aria-label="Fiskos sayfasını aç"><img src="/assets/icons/fiskos.webp" alt="" width="192" height="192" loading="eager" decoding="async"></a></li>
+    <li><a class="tile tile--sm" href="/u/arkana.html" aria-label="Arkana sayfasını aç"><img src="/assets/icons/arkana.webp" alt="" width="192" height="192" loading="eager" decoding="async"></a></li>
+    <li><a class="tile tile--sm" href="/u/kopuzname.html" aria-label="Kopuznâme sayfasını aç"><img src="/assets/icons/kopuzname.webp" alt="" width="192" height="192" loading="eager" decoding="async"></a></li>
+    <li><a class="tile tile--sm" href="/u/damga.html" aria-label="Damga sayfasını aç"><img src="/assets/icons/damga.webp" alt="" width="192" height="192" loading="eager" decoding="async"></a></li>
+    <li><a class="tile tile--sm" href="/u/koz.html" aria-label="KOZ sayfasını aç"><img src="/assets/icons/koz.webp" alt="" width="192" height="192" loading="eager" decoding="async"></a></li>
+    <li><a class="tile tile--sm tile--round" href="/u/kiln.html" aria-label="Kiln sayfasını aç"><img src="/assets/icons/kiln.webp" alt="" width="192" height="192" loading="eager" decoding="async"></a></li>
+    <li><a class="tile tile--sm tile--round" href="/u/encke.html" aria-label="Encke sayfasını aç"><img src="/assets/icons/encke.webp" alt="" width="192" height="192" loading="eager" decoding="async"></a></li>
+    <li><a class="tile tile--sm tile--round" href="/u/tumbler.html" aria-label="Tumbler sayfasını aç"><img src="/assets/icons/tumbler.webp" alt="" width="192" height="192" loading="eager" decoding="async"></a></li>
+<!--proof:end-->
+    </ul>
+    <p class="proof__note" id="proof-note">
+<!--proofnote:start-->
+    8 uygulama Google Play&#x27;de. 3 tanesi Wear OS&#x27;ta, hepsi çevrimdışı çalışıyor.
+<!--proofnote:end-->
+    </p>
+  </div>
+</header>
+
+<main>
+
+<section class="section wrap section--ruled" id="yayindakiler" aria-labelledby="yayindakiler-baslik">
+  <div class="section__head">
+    <h2 class="section__title" id="yayindakiler-baslik">Yayındakiler</h2>
+  </div>
+  <div id="register">
+<!--register:start-->
+  <div class="group">
+    <h3 class="group__label">Telefon</h3>
+    <ol class="rows">
+    <li class="row">
+      <span class="row__tile tile tile--md" aria-hidden="true"><img src="/assets/icons/fiskos.webp" alt="" width="192" height="192" loading="lazy" decoding="async"></span>
+      <h4 class="row__name"><a href="/u/fiskos.html">Fiskos</a></h4>
+      <div class="row__body"><p class="row__desc">İnternetsiz mesajlaşma. Otelin interneti berbat olduğu için yan yana otururken bile fotoğraf gönderemediğimiz bir tatilde çıktı: telefonları araya sunucu koymadan doğrudan birbirine bağlıyor.</p></div>
+      <ul class="row__shots row__shots--phone">
+        <li><img src="/assets/shots/fiskos/tr-1.webp" alt="Fiskos ekran görüntüsü 1" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/fiskos/tr-2.webp" alt="Fiskos ekran görüntüsü 2" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/fiskos/tr-3.webp" alt="Fiskos ekran görüntüsü 3" loading="lazy" decoding="async"></li>
+      </ul>
+      <a class="row__link row__link--badge store-badge" href="https://play.google.com/store/apps/details?id=com.alisrc.fiskos" rel="noopener"><img src="/assets/badge/google-play-tr.png" alt="Google Play&#x27;den indirin" width="400" height="155" loading="lazy"></a>
+    </li>
+    <li class="row">
+      <span class="row__tile tile tile--md" aria-hidden="true"><img src="/assets/icons/arkana.webp" alt="" width="192" height="192" loading="lazy" decoding="async"></span>
+      <h4 class="row__name"><a href="/u/arkana.html">Arkana</a></h4>
+      <div class="row__body"><p class="row__desc">78 kartlık, tamamen çevrimdışı tarot. Aslında eski oyun bilgisayarımda yerel görsel üretimini sınamak için başladı; destenin tek üslupta durması gereken 78 kartı iyi bir sınavdı.</p></div>
+      <ul class="row__shots row__shots--phone">
+        <li><img src="/assets/shots/arkana/tr-1.webp" alt="Arkana ekran görüntüsü 1" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/arkana/tr-2.webp" alt="Arkana ekran görüntüsü 2" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/arkana/tr-3.webp" alt="Arkana ekran görüntüsü 3" loading="lazy" decoding="async"></li>
+      </ul>
+      <a class="row__link row__link--badge store-badge" href="https://play.google.com/store/apps/details?id=com.alisrc.arkana" rel="noopener"><img src="/assets/badge/google-play-tr.png" alt="Google Play&#x27;den indirin" width="400" height="155" loading="lazy"></a>
+    </li>
+    <li class="row">
+      <span class="row__tile tile tile--md" aria-hidden="true"><img src="/assets/icons/kopuzname.webp" alt="" width="192" height="192" loading="lazy" decoding="async"></span>
+      <h4 class="row__name"><a href="/u/kopuzname.html">Kopuznâme</a></h4>
+      <div class="row__body"><p class="row__desc">Türk destanlarından beslenen bir roguelike deste kurucu. Hem bir oyunun bütün görsellerini aynı elden çıkmış gibi üretmenin sınavı, hem de Dede Korkut&#x27;la Manas&#x27;a açılan bir kapı.</p></div>
+      <ul class="row__shots row__shots--phone">
+        <li><img src="/assets/shots/kopuzname/tr-1.webp" alt="Kopuznâme ekran görüntüsü 1" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/kopuzname/tr-2.webp" alt="Kopuznâme ekran görüntüsü 2" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/kopuzname/tr-3.webp" alt="Kopuznâme ekran görüntüsü 3" loading="lazy" decoding="async"></li>
+      </ul>
+      <a class="row__link row__link--badge store-badge" href="https://play.google.com/store/apps/details?id=com.alisrc.kopuzname" rel="noopener"><img src="/assets/badge/google-play-tr.png" alt="Google Play&#x27;den indirin" width="400" height="155" loading="lazy"></a>
+    </li>
+    <li class="row">
+      <span class="row__tile tile tile--md" aria-hidden="true"><img src="/assets/icons/damga.webp" alt="" width="192" height="192" loading="lazy" decoding="async"></span>
+      <h4 class="row__name"><a href="/u/damga.html">Damga</a></h4>
+      <div class="row__body"><p class="row__desc">İznik çinisi ve Orhun damgalarıyla sakin bir eşleştirme bulmacası. Eşimin sevdiği türden bir oyunum olsun istedim; aynı zamanda reklamı ilk kez, sınırları önce koyarak denediğim yer.</p></div>
+      <ul class="row__shots row__shots--phone">
+        <li><img src="/assets/shots/damga/tr-1.webp" alt="Damga ekran görüntüsü 1" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/damga/tr-2.webp" alt="Damga ekran görüntüsü 2" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/damga/tr-3.webp" alt="Damga ekran görüntüsü 3" loading="lazy" decoding="async"></li>
+      </ul>
+      <a class="row__link row__link--badge store-badge" href="https://play.google.com/store/apps/details?id=com.alisrc.damga" rel="noopener"><img src="/assets/badge/google-play-tr.png" alt="Google Play&#x27;den indirin" width="400" height="155" loading="lazy"></a>
+    </li>
+    <li class="row">
+      <span class="row__tile tile tile--md" aria-hidden="true"><img src="/assets/icons/koz.webp" alt="" width="192" height="192" loading="lazy" decoding="async"></span>
+      <h4 class="row__name"><a href="/u/koz.html">KOZ</a></h4>
+      <div class="row__body"><p class="row__desc">Poker elleri üzerine kurulu bir deste kurma oyunu. Asıl sınavı sesti: yerelde müzik ve efekt üretmeyi denedim, çoğu elendi, geriye tekrar kullanılabilir bir kütüphane kaldı.</p></div>
+      <ul class="row__shots row__shots--phone">
+        <li><img src="/assets/shots/koz/tr-1.webp" alt="KOZ ekran görüntüsü 1" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/koz/tr-2.webp" alt="KOZ ekran görüntüsü 2" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/koz/tr-3.webp" alt="KOZ ekran görüntüsü 3" loading="lazy" decoding="async"></li>
+      </ul>
+      <a class="row__link row__link--badge store-badge" href="https://play.google.com/store/apps/details?id=com.alisrc.koz" rel="noopener"><img src="/assets/badge/google-play-tr.png" alt="Google Play&#x27;den indirin" width="400" height="155" loading="lazy"></a>
+    </li>
+    </ol>
+  </div>
+  <div class="group">
+    <h3 class="group__label">Wear OS</h3>
+    <ol class="rows">
+    <li class="row">
+      <span class="row__tile tile tile--md tile--round" aria-hidden="true"><img src="/assets/icons/kiln.webp" alt="" width="192" height="192" loading="lazy" decoding="async"></span>
+      <h4 class="row__name"><a href="/u/kiln.html">Kiln</a></h4>
+      <div class="row__body"><p class="row__desc">Saatimin çerçevesini boş boş çevirdiğimi fark ettim, madem bu kadar çeviriyorum bir işe yarasın dedim. Yuvarlak ekrana göre baştan düşünülmüş bir düşen blok bulmacası.</p></div>
+      <ul class="row__shots row__shots--wear">
+        <li><img src="/assets/shots/kiln/tr-1.webp" alt="Kiln ekran görüntüsü 1" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/kiln/tr-2.webp" alt="Kiln ekran görüntüsü 2" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/kiln/tr-3.webp" alt="Kiln ekran görüntüsü 3" loading="lazy" decoding="async"></li>
+      </ul>
+      <a class="row__link row__link--badge store-badge" href="https://play.google.com/store/apps/details?id=com.alisrc.kiln" rel="noopener"><img src="/assets/badge/google-play-tr.png" alt="Google Play&#x27;den indirin" width="400" height="155" loading="lazy"></a>
+    </li>
+    <li class="row">
+      <span class="row__tile tile tile--md tile--round" aria-hidden="true"><img src="/assets/icons/encke.webp" alt="" width="192" height="192" loading="lazy" decoding="async"></span>
+      <h4 class="row__name"><a href="/u/encke.html">Encke</a></h4>
+      <div class="row__body"><p class="row__desc">Kiln&#x27;den sonraki soru: aynı girdiyle en saf oyun ne olur? Çerçeve tek bir şey veriyor, bir açı. Satürn&#x27;ün halkalarındaki tek açıklığı bulup geçiyorsun, başka mekanik yok.</p></div>
+      <ul class="row__shots row__shots--wear">
+        <li><img src="/assets/shots/encke/tr-1.webp" alt="Encke ekran görüntüsü 1" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/encke/tr-2.webp" alt="Encke ekran görüntüsü 2" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/encke/tr-3.webp" alt="Encke ekran görüntüsü 3" loading="lazy" decoding="async"></li>
+      </ul>
+      <a class="row__link row__link--badge store-badge" href="https://play.google.com/store/apps/details?id=com.alisrc.encke" rel="noopener"><img src="/assets/badge/google-play-tr.png" alt="Google Play&#x27;den indirin" width="400" height="155" loading="lazy"></a>
+    </li>
+    <li class="row">
+      <span class="row__tile tile tile--md tile--round" aria-hidden="true"><img src="/assets/icons/tumbler.webp" alt="" width="192" height="192" loading="lazy" decoding="async"></span>
+      <h4 class="row__name"><a href="/u/tumbler.html">Tumbler</a></h4>
+      <div class="row__body"><p class="row__desc">Üçüncüsü ekranı tamamen bıraktı. Kasa kilidini yalnız titreşimle açıyorsun; kör mod oyunun asıl hâli, yan etkisi de gözü kapalı oynanabilmesi.</p></div>
+      <ul class="row__shots row__shots--wear">
+        <li><img src="/assets/shots/tumbler/tr-1.webp" alt="Tumbler ekran görüntüsü 1" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/tumbler/tr-2.webp" alt="Tumbler ekran görüntüsü 2" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/tumbler/tr-3.webp" alt="Tumbler ekran görüntüsü 3" loading="lazy" decoding="async"></li>
+      </ul>
+      <a class="row__link row__link--badge store-badge" href="https://play.google.com/store/apps/details?id=com.alisrc.tumbler" rel="noopener"><img src="/assets/badge/google-play-tr.png" alt="Google Play&#x27;den indirin" width="400" height="155" loading="lazy"></a>
+    </li>
+    </ol>
+  </div>
+<!--register:end-->
+  </div>
+</section>
+
+<section class="section wrap section--ruled" id="nasil-yaptim" aria-labelledby="nasil-yaptim-baslik">
+  <div class="section__head">
+    <h2 class="section__title" id="nasil-yaptim-baslik">Nasıl yaptım</h2>
+  </div>
+  <ol class="posts" id="post-list">
+<!--posts:start-->
+    <li class="post">
+      <h3 class="post__title"><a href="/y/reklam-siniri.html">Reklamı oyunu bozmadan koymak</a></h3>
+      <p class="post__meta">10 Eylül 2026</p>
+      <p class="post__summary">Damga&#x27;da önce reklamın sınırlarını koydum, reklamı sonra o sınırların içine yerleştirdim. Tersini yapmak kolaydı ve oyunu bitirirdi.</p>
+    </li>
+<!--posts:end-->
+  </ol>
+</section>
+
+<section class="section wrap" id="kim" aria-labelledby="kim-baslik">
+  <div class="section__head">
+    <h2 class="section__title" id="kim-baslik">Kısaca</h2>
+  </div>
+  <div class="bio">
+    <p>
+      Boğaziçi Üniversitesi Bilgisayar Mühendisliği, 2006. Yirmi yıldır
+      yazılım yazıyorum.
+    </p>
+    <p>
+      AWS Solutions Architect sertifikalıyım. Bu sayfadaki ürünlerin tamamı
+      kendi AWS ve Google Play hesaplarımda çalışıyor, yani mağaza reddinden
+      üretim nöbetine kadar her adımı bizzat yaşadım.
+    </p>
+    <p>
+      Günlük araçlarım: Flutter ve Kotlin (Wear OS dahil), Next.js, Python,
+      PostgreSQL, AWS.
+    </p>
+  </div>
+</section>
+
+<section class="band" id="iletisim" aria-labelledby="iletisim-baslik">
+  <div class="wrap">
+    <div class="section__head">
+      <h2 class="section__title" id="iletisim-baslik">İletişim</h2>
+    </div>
+
+    <p class="band-lede">
+      Buradaki bir şeyi merak ederseniz ya da konuşmak isterseniz, bir e-posta
+      kadar yakınım.
+    </p>
+
+    <a class="mailto" href="mailto:alisarac@gmail.com">alisarac@gmail.com</a>
+
+    <ul class="elsewhere">
+      <li><a href="https://github.com/alisarac" rel="me noopener">github.com/alisarac</a></li>
+      <li><a href="https://www.linkedin.com/in/alisarac" rel="me noopener">linkedin.com/in/alisarac</a></li>
+    </ul>
+
+    <p class="contact-note">İstanbul, UTC+3. Genelde bir gün içinde dönerim.</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="colophon-band">
+  <div class="colophon wrap">
+    <span>© 2026 Ali Saraç</span>
+    <span>Çerçeve yok, takip yok, çerez yok.</span>
+  </div>
+</footer>
+
+<script src="/site.js"></script>
 </body>
 </html>

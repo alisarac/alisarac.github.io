@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ali Saraç — solo product engineer, Istanbul</title>
+<meta name="description" content="Eight apps that each started with a question and ended on Google Play: five for the phone, three for Wear OS, and every one of them works offline. Each has a page on why and how it was built.">
+<link rel="canonical" href="https://alisrc.com/en.html">
+<link rel="alternate" hreflang="tr" href="https://alisrc.com/">
+<link rel="alternate" hreflang="en" href="https://alisrc.com/en.html">
+<link rel="alternate" hreflang="x-default" href="https://alisrc.com/">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="alisrc.com">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="tr_TR">
+<meta property="og:url" content="https://alisrc.com/en.html">
+<meta property="og:title" content="Ali Saraç — solo product engineer, Istanbul">
+<meta property="og:description" content="Eight apps on Google Play: three on Wear OS, and every one of them works offline. Design through infrastructure, end to end.">
+<meta property="og:image" content="https://alisrc.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Ali Saraç — solo product engineer, Istanbul">
+<meta name="twitter:card" content="summary_large_image">
+
+<!--jsonld:start-->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "Ali Saraç",
+  "url": "https://alisrc.com/",
+  "jobTitle": "Software engineer",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "İstanbul",
+    "addressCountry": "TR"
+  },
+  "email": "mailto:alisarac@gmail.com",
+  "sameAs": [
+    "https://github.com/alisarac",
+    "https://www.linkedin.com/in/alisarac"
+  ],
+  "alumniOf": {
+    "@type": "CollegeOrUniversity",
+    "name": "Boğaziçi Üniversitesi"
+  },
+  "knowsAbout": [
+    "Flutter",
+    "Kotlin",
+    "Wear OS",
+    "Next.js",
+    "Python",
+    "PostgreSQL",
+    "AWS"
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "Shipped",
+  "numberOfItems": 8,
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "url": "https://alisrc.com/u/fiskos.en.html",
+      "name": "Fiskos"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "url": "https://alisrc.com/u/arkana.en.html",
+      "name": "Arkana"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "url": "https://alisrc.com/u/kopuzname.en.html",
+      "name": "Kopuznâme"
+    },
+    {
+      "@type": "ListItem",
+      "position": 4,
+      "url": "https://alisrc.com/u/damga.en.html",
+      "name": "Damga"
+    },
+    {
+      "@type": "ListItem",
+      "position": 5,
+      "url": "https://alisrc.com/u/koz.en.html",
+      "name": "KOZ"
+    },
+    {
+      "@type": "ListItem",
+      "position": 6,
+      "url": "https://alisrc.com/u/kiln.en.html",
+      "name": "Kiln"
+    },
+    {
+      "@type": "ListItem",
+      "position": 7,
+      "url": "https://alisrc.com/u/encke.en.html",
+      "name": "Encke"
+    },
+    {
+      "@type": "ListItem",
+      "position": 8,
+      "url": "https://alisrc.com/u/tumbler.en.html",
+      "name": "Tumbler"
+    }
+  ]
+}
+</script>
+<!--jsonld:end-->
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#e8ebe8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#151a1b" media="(prefers-color-scheme: dark)">
+
+<script>
+/* Apply the stored theme before first paint so the page never flashes. */
+(function () {
+  try {
+    var t = localStorage.getItem("theme");
+    if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+})();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,SOFT,WONK,wght@9..144,0..100,0..1,400..900&family=Source+Serif+4:opsz,wght@8..60,400..600&display=swap">
+<link rel="stylesheet" href="/site.css">
+</head>
+
+<body>
+<a class="skip" href="#shipped">Skip to content</a>
+
+<header class="masthead wrap">
+  <div class="masthead__top">
+    <h1 class="wordmark">Ali Saraç<span class="wordmark__role">Solo product engineer, Istanbul</span></h1>
+    <div class="controls">
+      <nav class="lang" aria-label="Language">
+        <a href="/" hreflang="tr" lang="tr">TR</a>
+        <span class="lang__sep" aria-hidden="true">/</span>
+        <span aria-current="true">EN</span>
+      </nav>
+      <button class="theme-btn" id="theme-toggle" type="button" hidden>
+        <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <circle cx="8" cy="8" r="6.6" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+          <path d="M8 1.4a6.6 6.6 0 0 0 0 13.2z" fill="currentColor"></path>
+        </svg>
+        Theme
+      </button>
+    </div>
+  </div>
+
+  <p class="lede">
+    Each of these started with a question: how far does local image generation
+    go on an old gaming PC, how do you make every piece of a game's art look
+    like it came from one hand, what can a watch bezel do without imitating
+    arrow keys. <strong>None of them stayed an experiment: all eight are on the
+    store.</strong> The product call, the design, the code, the infrastructure
+    and the store submission are mine; I hold a full-time job, and these came
+    out of the time around it.
+  </p>
+
+  <div class="proof">
+    <ul class="proof__strip" id="proof-strip">
+<!--proof:start-->
+    <li><a class="tile tile--sm" href="/u/fiskos.en.html" aria-label="Open the Fiskos page"><img src="/assets/icons/fiskos.webp" alt="" width="192" height="192" loading="eager" decoding="async"></a></li>
+    <li><a class="tile tile--sm" href="/u/arkana.en.html" aria-label="Open the Arkana page"><img src="/assets/icons/arkana.webp" alt="" width="192" height="192" loading="eager" decoding="async"></a></li>
+    <li><a class="tile tile--sm" href="/u/kopuzname.en.html" aria-label="Open the Kopuznâme page"><img src="/assets/icons/kopuzname.webp" alt="" width="192" height="192" loading="eager" decoding="async"></a></li>
+    <li><a class="tile tile--sm" href="/u/damga.en.html" aria-label="Open the Damga page"><img src="/assets/icons/damga.webp" alt="" width="192" height="192" loading="eager" decoding="async"></a></li>
+    <li><a class="tile tile--sm" href="/u/koz.en.html" aria-label="Open the KOZ page"><img src="/assets/icons/koz.webp" alt="" width="192" height="192" loading="eager" decoding="async"></a></li>
+    <li><a class="tile tile--sm tile--round" href="/u/kiln.en.html" aria-label="Open the Kiln page"><img src="/assets/icons/kiln.webp" alt="" width="192" height="192" loading="eager" decoding="async"></a></li>
+    <li><a class="tile tile--sm tile--round" href="/u/encke.en.html" aria-label="Open the Encke page"><img src="/assets/icons/encke.webp" alt="" width="192" height="192" loading="eager" decoding="async"></a></li>
+    <li><a class="tile tile--sm tile--round" href="/u/tumbler.en.html" aria-label="Open the Tumbler page"><img src="/assets/icons/tumbler.webp" alt="" width="192" height="192" loading="eager" decoding="async"></a></li>
+<!--proof:end-->
+    </ul>
+    <p class="proof__note" id="proof-note">
+<!--proofnote:start-->
+    8 apps on Google Play. 3 of them on Wear OS, and all of them work offline.
+<!--proofnote:end-->
+    </p>
+  </div>
+</header>
+
+<main>
+
+<section class="section wrap section--ruled" id="shipped" aria-labelledby="shipped-heading">
+  <div class="section__head">
+    <h2 class="section__title" id="shipped-heading">Shipped</h2>
+  </div>
+  <div id="register">
+<!--register:start-->
+  <div class="group">
+    <h3 class="group__label">Phone</h3>
+    <ol class="rows">
+    <li class="row">
+      <span class="row__tile tile tile--md" aria-hidden="true"><img src="/assets/icons/fiskos.webp" alt="" width="192" height="192" loading="lazy" decoding="async"></span>
+      <h4 class="row__name"><a href="/u/fiskos.en.html">Fiskos</a></h4>
+      <div class="row__body"><p class="row__desc">Messaging with no internet. It came out of a holiday where the hotel&#x27;s connection was so bad we could not send each other a photo while sitting side by side, so it links the phones directly, with no server in between.</p></div>
+      <ul class="row__shots row__shots--phone">
+        <li><img src="/assets/shots/fiskos/en-1.webp" alt="Fiskos screenshot 1" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/fiskos/en-2.webp" alt="Fiskos screenshot 2" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/fiskos/en-3.webp" alt="Fiskos screenshot 3" loading="lazy" decoding="async"></li>
+      </ul>
+      <a class="row__link row__link--badge store-badge" href="https://play.google.com/store/apps/details?id=com.alisrc.fiskos" rel="noopener"><img src="/assets/badge/google-play-en.png" alt="Get it on Google Play" width="400" height="155" loading="lazy"></a>
+    </li>
+    <li class="row">
+      <span class="row__tile tile tile--md" aria-hidden="true"><img src="/assets/icons/arkana.webp" alt="" width="192" height="192" loading="lazy" decoding="async"></span>
+      <h4 class="row__name"><a href="/u/arkana.en.html">Arkana</a></h4>
+      <div class="row__body"><p class="row__desc">A fully offline tarot app with 78 cards. It actually began as a test of local image generation on my old gaming PC: a deck whose 78 cards must all look like one hand is a good exam.</p></div>
+      <ul class="row__shots row__shots--phone">
+        <li><img src="/assets/shots/arkana/en-1.webp" alt="Arkana screenshot 1" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/arkana/en-2.webp" alt="Arkana screenshot 2" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/arkana/en-3.webp" alt="Arkana screenshot 3" loading="lazy" decoding="async"></li>
+      </ul>
+      <a class="row__link row__link--badge store-badge" href="https://play.google.com/store/apps/details?id=com.alisrc.arkana" rel="noopener"><img src="/assets/badge/google-play-en.png" alt="Get it on Google Play" width="400" height="155" loading="lazy"></a>
+    </li>
+    <li class="row">
+      <span class="row__tile tile tile--md" aria-hidden="true"><img src="/assets/icons/kopuzname.webp" alt="" width="192" height="192" loading="lazy" decoding="async"></span>
+      <h4 class="row__name"><a href="/u/kopuzname.en.html">Kopuznâme</a></h4>
+      <div class="row__body"><p class="row__desc">A roguelike deckbuilder rooted in the Turkic epics. Both a test of producing every piece of a game&#x27;s art as if it came from one hand, and a door into Dede Korkut and Manas.</p></div>
+      <ul class="row__shots row__shots--phone">
+        <li><img src="/assets/shots/kopuzname/en-1.webp" alt="Kopuznâme screenshot 1" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/kopuzname/en-2.webp" alt="Kopuznâme screenshot 2" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/kopuzname/en-3.webp" alt="Kopuznâme screenshot 3" loading="lazy" decoding="async"></li>
+      </ul>
+      <a class="row__link row__link--badge store-badge" href="https://play.google.com/store/apps/details?id=com.alisrc.kopuzname" rel="noopener"><img src="/assets/badge/google-play-en.png" alt="Get it on Google Play" width="400" height="155" loading="lazy"></a>
+    </li>
+    <li class="row">
+      <span class="row__tile tile tile--md" aria-hidden="true"><img src="/assets/icons/damga.webp" alt="" width="192" height="192" loading="lazy" decoding="async"></span>
+      <h4 class="row__name"><a href="/u/damga.en.html">Damga</a></h4>
+      <div class="row__body"><p class="row__desc">A calm matching puzzle in İznik ceramic and Old Turkic runes. I wanted a game of the kind my wife likes, and it is also where I tried advertising for the first time, by setting the limits first.</p></div>
+      <ul class="row__shots row__shots--phone">
+        <li><img src="/assets/shots/damga/en-1.webp" alt="Damga screenshot 1" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/damga/en-2.webp" alt="Damga screenshot 2" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/damga/en-3.webp" alt="Damga screenshot 3" loading="lazy" decoding="async"></li>
+      </ul>
+      <a class="row__link row__link--badge store-badge" href="https://play.google.com/store/apps/details?id=com.alisrc.damga" rel="noopener"><img src="/assets/badge/google-play-en.png" alt="Get it on Google Play" width="400" height="155" loading="lazy"></a>
+    </li>
+    <li class="row">
+      <span class="row__tile tile tile--md" aria-hidden="true"><img src="/assets/icons/koz.webp" alt="" width="192" height="192" loading="lazy" decoding="async"></span>
+      <h4 class="row__name"><a href="/u/koz.en.html">KOZ</a></h4>
+      <div class="row__body"><p class="row__desc">A deckbuilder built on poker hands. The real test was the audio: I tried generating music and effects locally, most of it was thrown out, and a reusable library is what stayed.</p></div>
+      <ul class="row__shots row__shots--phone">
+        <li><img src="/assets/shots/koz/en-1.webp" alt="KOZ screenshot 1" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/koz/en-2.webp" alt="KOZ screenshot 2" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/koz/en-3.webp" alt="KOZ screenshot 3" loading="lazy" decoding="async"></li>
+      </ul>
+      <a class="row__link row__link--badge store-badge" href="https://play.google.com/store/apps/details?id=com.alisrc.koz" rel="noopener"><img src="/assets/badge/google-play-en.png" alt="Get it on Google Play" width="400" height="155" loading="lazy"></a>
+    </li>
+    </ol>
+  </div>
+  <div class="group">
+    <h3 class="group__label">Wear OS</h3>
+    <ol class="rows">
+    <li class="row">
+      <span class="row__tile tile tile--md tile--round" aria-hidden="true"><img src="/assets/icons/kiln.webp" alt="" width="192" height="192" loading="lazy" decoding="async"></span>
+      <h4 class="row__name"><a href="/u/kiln.en.html">Kiln</a></h4>
+      <div class="row__body"><p class="row__desc">I caught myself spinning my watch bezel for no reason and decided it might as well do something. A falling-block puzzle rethought from scratch for a round screen.</p></div>
+      <ul class="row__shots row__shots--wear">
+        <li><img src="/assets/shots/kiln/en-1.webp" alt="Kiln screenshot 1" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/kiln/en-2.webp" alt="Kiln screenshot 2" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/kiln/en-3.webp" alt="Kiln screenshot 3" loading="lazy" decoding="async"></li>
+      </ul>
+      <a class="row__link row__link--badge store-badge" href="https://play.google.com/store/apps/details?id=com.alisrc.kiln" rel="noopener"><img src="/assets/badge/google-play-en.png" alt="Get it on Google Play" width="400" height="155" loading="lazy"></a>
+    </li>
+    <li class="row">
+      <span class="row__tile tile tile--md tile--round" aria-hidden="true"><img src="/assets/icons/encke.webp" alt="" width="192" height="192" loading="lazy" decoding="async"></span>
+      <h4 class="row__name"><a href="/u/encke.en.html">Encke</a></h4>
+      <div class="row__body"><p class="row__desc">The question after Kiln: what is the purest game the same input can make? The bezel gives you one thing, an angle. You find the single opening in Saturn&#x27;s rings and pass through it, and there is no second mechanic.</p></div>
+      <ul class="row__shots row__shots--wear">
+        <li><img src="/assets/shots/encke/en-1.webp" alt="Encke screenshot 1" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/encke/en-2.webp" alt="Encke screenshot 2" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/encke/en-3.webp" alt="Encke screenshot 3" loading="lazy" decoding="async"></li>
+      </ul>
+      <a class="row__link row__link--badge store-badge" href="https://play.google.com/store/apps/details?id=com.alisrc.encke" rel="noopener"><img src="/assets/badge/google-play-en.png" alt="Get it on Google Play" width="400" height="155" loading="lazy"></a>
+    </li>
+    <li class="row">
+      <span class="row__tile tile tile--md tile--round" aria-hidden="true"><img src="/assets/icons/tumbler.webp" alt="" width="192" height="192" loading="lazy" decoding="async"></span>
+      <h4 class="row__name"><a href="/u/tumbler.en.html">Tumbler</a></h4>
+      <div class="row__body"><p class="row__desc">The third one gave up the screen entirely. You crack a safe by vibration alone: blind mode is the real game, and a side effect is that it can be played with your eyes shut.</p></div>
+      <ul class="row__shots row__shots--wear">
+        <li><img src="/assets/shots/tumbler/en-1.webp" alt="Tumbler screenshot 1" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/tumbler/en-2.webp" alt="Tumbler screenshot 2" loading="lazy" decoding="async"></li>
+        <li><img src="/assets/shots/tumbler/en-3.webp" alt="Tumbler screenshot 3" loading="lazy" decoding="async"></li>
+      </ul>
+      <a class="row__link row__link--badge store-badge" href="https://play.google.com/store/apps/details?id=com.alisrc.tumbler" rel="noopener"><img src="/assets/badge/google-play-en.png" alt="Get it on Google Play" width="400" height="155" loading="lazy"></a>
+    </li>
+    </ol>
+  </div>
+<!--register:end-->
+  </div>
+</section>
+
+<section class="section wrap section--ruled" id="how-i-made-it" aria-labelledby="how-i-made-it-heading">
+  <div class="section__head">
+    <h2 class="section__title" id="how-i-made-it-heading">How I made it</h2>
+  </div>
+  <ol class="posts" id="post-list">
+<!--posts:start-->
+    <li class="post">
+      <h3 class="post__title"><a href="/y/reklam-siniri.en.html">Fitting advertising into a game without breaking it</a></h3>
+      <p class="post__meta">September 10, 2026</p>
+      <p class="post__summary">In Damga I set the limits on advertising first and fitted the advertising inside them afterwards. Doing it the other way round would have been easier, and it would have ended the game.</p>
+    </li>
+<!--posts:end-->
+  </ol>
+</section>
+
+<section class="section wrap" id="about" aria-labelledby="about-heading">
+  <div class="section__head">
+    <h2 class="section__title" id="about-heading">Short version</h2>
+  </div>
+  <div class="bio">
+    <p>
+      Computer Engineering, Boğaziçi University, 2006. Twenty years writing
+      software.
+    </p>
+    <p>
+      AWS Solutions Architect. Everything on this page runs in my own AWS and
+      Google Play accounts, which means I have been through every step of it
+      myself, from a store rejection to a production incident at 3am.
+    </p>
+    <p>
+      Day to day: Flutter and Kotlin including Wear OS, Next.js, Python,
+      PostgreSQL, AWS.
+    </p>
+  </div>
+</section>
+
+<section class="band" id="contact" aria-labelledby="contact-heading">
+  <div class="wrap">
+    <div class="section__head">
+      <h2 class="section__title" id="contact-heading">Contact</h2>
+    </div>
+
+    <p class="band-lede">
+      If something here makes you curious, or you just want to talk about it,
+      I am one email away.
+    </p>
+
+    <a class="mailto" href="mailto:alisarac@gmail.com">alisarac@gmail.com</a>
+
+    <ul class="elsewhere">
+      <li><a href="https://github.com/alisarac" rel="me noopener">github.com/alisarac</a></li>
+      <li><a href="https://www.linkedin.com/in/alisarac" rel="me noopener">linkedin.com/in/alisarac</a></li>
+    </ul>
+
+    <p class="contact-note">Istanbul, UTC+3. I usually reply within a day.</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="colophon-band">
+  <div class="colophon wrap">
+    <span>© 2026 Ali Saraç</span>
+    <span>No framework, no tracking, no cookies.</span>
+  </div>
+</footer>
+
+<script src="/site.js"></script>
+</body>
+</html>
