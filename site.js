@@ -97,6 +97,8 @@
       if (event.target === box || event.target === frame) box.close();
     });
 
+    wireSwipe();
+
     box.addEventListener("keydown", function (event) {
       if (event.key === "ArrowLeft") { event.preventDefault(); go(-1); }
       if (event.key === "ArrowRight") { event.preventDefault(); go(1); }
@@ -119,6 +121,8 @@
   function show(i) {
     at = (i + shots.length) % shots.length;
     var link = shots[at];
+    picture.style.transition = "none";
+    picture.style.transform = "";
     picture.src = link.getAttribute("href");
     picture.alt = link.querySelector("img") ? link.querySelector("img").alt : "";
     picture.classList.toggle("lb__img--round", round);
@@ -129,6 +133,48 @@
   }
 
   function go(step) { show(at + step); }
+
+  /* Swipe. Pinch-zoom is left to the browser, because a screenshot is
+     something people want to zoom into; only a single-finger horizontal drag
+     is treated as a gesture. */
+  var SWIPE = 45;
+  var startX = 0, startY = 0, dragging = false, moved = 0;
+  var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function slide(px) {
+    if (still) return;
+    picture.style.transform = px ? "translateX(" + px + "px)" : "";
+  }
+
+  function wireSwipe() {
+    frame.addEventListener("touchstart", function (event) {
+      if (event.touches.length !== 1 || shots.length < 2) { dragging = false; return; }
+      dragging = true;
+      moved = 0;
+      startX = event.touches[0].clientX;
+      startY = event.touches[0].clientY;
+      picture.style.transition = "none";
+    }, { passive: true });
+
+    frame.addEventListener("touchmove", function (event) {
+      if (!dragging || event.touches.length !== 1) return;
+      var dx = event.touches[0].clientX - startX;
+      var dy = event.touches[0].clientY - startY;
+      if (Math.abs(dy) > Math.abs(dx)) { dragging = false; slide(0); return; }
+      moved = dx;
+      slide(dx * 0.55);          /* damped, so the edges feel like edges */
+    }, { passive: true });
+
+    frame.addEventListener("touchend", function () {
+      if (!dragging) return;
+      dragging = false;
+      picture.style.transition = still ? "" : "transform 160ms ease-out";
+      if (Math.abs(moved) > SWIPE) {
+        go(moved < 0 ? 1 : -1);
+      }
+      slide(0);
+    }, { passive: true });
+  }
 
   function wireLightbox() {
     var strips = document.querySelectorAll(".row__shots, .shots");
