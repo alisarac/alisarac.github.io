@@ -705,18 +705,28 @@ img { max-width: 100%; }
   background: rgba(10, 13, 14, 0.965); color: var(--band-ink); overflow: hidden;
 }
 .lb::backdrop { background: #0a0d0e; }
-.lb__frame {
+/* One track, one slide per shot: the neighbour follows your finger in, which
+   is the whole difference between a carousel and a picture that swaps. */
+.lb__viewport {
+  position: absolute; inset: 0 0 5rem;
+  overflow: hidden;
+  /* Horizontal dragging is ours; pinch-zoom stays with the browser, because
+     zooming into a screenshot is the thing people most want to do. */
+  touch-action: pan-y pinch-zoom;
+}
+.lb__track { display: flex; height: 100%; }
+.lb__slide {
   box-sizing: border-box;
+  flex: 0 0 100%;
   display: flex; align-items: center; justify-content: center;
-  width: 100%; height: 100%;
-  padding: clamp(1rem, 3vw, 2.5rem) clamp(3.5rem, 7vw, 5.5rem) 5.5rem;
-  /* The browser keeps pinch-zoom; a one-finger horizontal drag is ours. */
-  touch-action: pinch-zoom;
+  padding: clamp(1rem, 3vw, 2.5rem) clamp(1rem, 4vw, 3.5rem);
 }
 .lb__img {
   display: block; max-width: 100%; max-height: 100%;
   width: auto; height: auto; object-fit: contain;
   border-radius: 0.6rem; background: #101414;
+  pointer-events: none;          /* the drag belongs to the viewport */
+  -webkit-user-drag: none; user-select: none;
 }
 .lb__img--round { border-radius: 50%; }
 
@@ -737,7 +747,8 @@ img { max-width: 100%; }
   border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 50%;
   cursor: pointer;
 }
-.lb__btn:hover { background: rgba(255, 255, 255, 0.16); }
+.lb__btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.16); }
+.lb__btn:disabled { opacity: 0.35; cursor: default; }
 .lb__btn:focus-visible { outline: 2px solid var(--band-accent); outline-offset: 2px; }
 .lb__close { position: absolute; top: clamp(0.75rem, 2vw, 1.5rem); right: clamp(0.75rem, 2vw, 1.5rem); }
 
@@ -745,3 +756,4 @@ img { max-width: 100%; }
   .lb[open], .lb[open]::backdrop { animation: lb-in 140ms ease-out; }
   @keyframes lb-in { from { opacity: 0; } to { opacity: 1; } }
 }
+

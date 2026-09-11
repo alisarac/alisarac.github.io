@@ -55,55 +55,14 @@
   }
 
   /* ── lightbox ────────────────────────────────────────── */
+  /* A real carousel: every shot is a slide on one track, so dragging brings
+     the neighbouring image in with your finger instead of swapping after the
+     fact. The track is moved in pixels, which keeps the drag and the snap in
+     the same unit. */
 
-  var box = null, frame = null, picture = null, counter = null;
-  var shots = [], at = 0, round = false;
-
-  function build() {
-    if (box) return;
-
-    box = document.createElement("dialog");
-    box.className = "lb";
-    box.setAttribute("aria-label", COPY.gallery);
-
-    frame = document.createElement("div");
-    frame.className = "lb__frame";
-
-    picture = document.createElement("img");
-    picture.className = "lb__img";
-    picture.decoding = "async";
-    frame.appendChild(picture);
-
-    var bar = document.createElement("div");
-    bar.className = "lb__bar";
-
-    counter = document.createElement("p");
-    counter.className = "lb__count";
-
-    bar.appendChild(button("lb__btn lb__btn--prev", COPY.prev, "M10 2 4 8l6 6", function () { go(-1); }));
-    bar.appendChild(counter);
-    bar.appendChild(button("lb__btn lb__btn--next", COPY.next, "M6 2l6 6-6 6", function () { go(1); }));
-
-    var close = button("lb__btn lb__close", COPY.close, "M3 3l10 10M13 3L3 13", function () { box.close(); });
-    close.autofocus = true;   /* showModal() would otherwise land on "previous" */
-
-    box.appendChild(frame);
-    box.appendChild(bar);
-    box.appendChild(close);
-    document.body.appendChild(box);
-
-    /* Clicking the backdrop, which is the dialog itself outside the image. */
-    box.addEventListener("click", function (event) {
-      if (event.target === box || event.target === frame) box.close();
-    });
-
-    wireSwipe();
-
-    box.addEventListener("keydown", function (event) {
-      if (event.key === "ArrowLeft") { event.preventDefault(); go(-1); }
-      if (event.key === "ArrowRight") { event.preventDefault(); go(1); }
-    });
-  }
+  var box, viewport, track, bar, counter, prevBtn, nextBtn;
+  var shots = [], slides = [], at = 0, round = false, width = 0;
+  var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function button(cls, label, path, onClick) {
     var b = document.createElement("button");
@@ -118,62 +77,137 @@
     return b;
   }
 
-  function show(i) {
-    at = (i + shots.length) % shots.length;
-    var link = shots[at];
-    picture.style.transition = "none";
-    picture.style.transform = "";
-    picture.src = link.getAttribute("href");
-    picture.alt = link.querySelector("img") ? link.querySelector("img").alt : "";
-    picture.classList.toggle("lb__img--round", round);
-    counter.textContent = COPY.count(at + 1, shots.length);
-    counter.hidden = shots.length < 2;
-    box.querySelector(".lb__btn--prev").hidden = shots.length < 2;
-    box.querySelector(".lb__btn--next").hidden = shots.length < 2;
+  function build() {
+    if (box) return;
+
+    box = document.createElement("dialog");
+    box.className = "lb";
+    box.setAttribute("aria-label", COPY.gallery);
+
+    viewport = document.createElement("div");
+    viewport.className = "lb__viewport";
+    track = document.createElement("div");
+    track.className = "lb__track";
+    viewport.appendChild(track);
+
+    bar = document.createElement("div");
+    bar.className = "lb__bar";
+    counter = document.createElement("p");
+    counter.className = "lb__count";
+    prevBtn = button("lb__btn lb__btn--prev", COPY.prev, "M10 2 4 8l6 6", function () { go(-1); });
+    nextBtn = button("lb__btn lb__btn--next", COPY.next, "M6 2l6 6-6 6", function () { go(1); });
+    bar.appendChild(prevBtn);
+    bar.appendChild(counter);
+    bar.appendChild(nextBtn);
+
+    var close = button("lb__btn lb__close", COPY.close, "M3 3l10 10M13 3L3 13", function () { box.close(); });
+
+    box.appendChild(viewport);
+    box.appendChild(bar);
+    box.appendChild(close);
+    document.body.appendChild(box);
+
+    viewport.addEventListener("click", function (event) {
+      if (event.target === viewport || event.target.classList.contains("lb__slide")) box.close();
+    });
+
+    box.addEventListener("keydown", function (event) {
+      if (event.key === "ArrowLeft") { event.preventDefault(); go(-1); }
+      if (event.key === "ArrowRight") { event.preventDefault(); go(1); }
+    });
+
+    window.addEventListener("resize", function () {
+      if (!box.open) return;
+      width = viewport.clientWidth;
+      move(-at * width, false);
+    });
+
+    wireDrag();
   }
 
-  function go(step) { show(at + step); }
-
-  /* Swipe. Pinch-zoom is left to the browser, because a screenshot is
-     something people want to zoom into; only a single-finger horizontal drag
-     is treated as a gesture. */
-  var SWIPE = 45;
-  var startX = 0, startY = 0, dragging = false, moved = 0;
-  var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  function slide(px) {
-    if (still) return;
-    picture.style.transform = px ? "translateX(" + px + "px)" : "";
+  function move(px, animate) {
+    track.style.transition = (animate && !still) ? "transform 260ms cubic-bezier(.22,.61,.36,1)" : "none";
+    track.style.transform = "translateX(" + px + "px)";
   }
 
-  function wireSwipe() {
-    frame.addEventListener("touchstart", function (event) {
-      if (event.touches.length !== 1 || shots.length < 2) { dragging = false; return; }
-      dragging = true;
-      moved = 0;
+  /* Only the neighbours are fetched, so opening a gallery of eight costs one
+     image, not eight. */
+  function load(i) {
+    for (var n = i - 1; n <= i + 1; n++) {
+      var s = slides[(n + slides.length) % slides.length];
+      if (s && !s.firstChild.src) s.firstChild.src = s.firstChild.dataset.src;
+    }
+  }
+
+  function setIndex(i, animate) {
+    at = Math.max(0, Math.min(slides.length - 1, i));
+    load(at);
+    move(-at * width, animate);
+    counter.textContent = COPY.count(at + 1, slides.length);
+    prevBtn.disabled = at === 0;
+    nextBtn.disabled = at === slides.length - 1;
+  }
+
+  function go(step) { setIndex(at + step, true); }
+
+  var startX = 0, startY = 0, dragging = false, dx = 0;
+
+  function wireDrag() {
+    viewport.addEventListener("touchstart", function (event) {
+      if (event.touches.length !== 1 || slides.length < 2) { dragging = false; return; }
+      dragging = true; dx = 0;
       startX = event.touches[0].clientX;
       startY = event.touches[0].clientY;
-      picture.style.transition = "none";
+      track.style.transition = "none";
     }, { passive: true });
 
-    frame.addEventListener("touchmove", function (event) {
+    viewport.addEventListener("touchmove", function (event) {
       if (!dragging || event.touches.length !== 1) return;
-      var dx = event.touches[0].clientX - startX;
-      var dy = event.touches[0].clientY - startY;
-      if (Math.abs(dy) > Math.abs(dx)) { dragging = false; slide(0); return; }
-      moved = dx;
-      slide(dx * 0.55);          /* damped, so the edges feel like edges */
+      var mx = event.touches[0].clientX - startX;
+      var my = event.touches[0].clientY - startY;
+      if (dx === 0 && Math.abs(my) > Math.abs(mx)) { dragging = false; return; }
+      dx = mx;
+      /* Resist at the two ends, so the gallery feels like it has edges. */
+      if ((at === 0 && dx > 0) || (at === slides.length - 1 && dx < 0)) dx *= 0.32;
+      move(-at * width + dx, false);
     }, { passive: true });
 
-    frame.addEventListener("touchend", function () {
+    function release() {
       if (!dragging) return;
       dragging = false;
-      picture.style.transition = still ? "" : "transform 160ms ease-out";
-      if (Math.abs(moved) > SWIPE) {
-        go(moved < 0 ? 1 : -1);
-      }
-      slide(0);
-    }, { passive: true });
+      var far = Math.abs(dx) > Math.min(72, width * 0.18);
+      setIndex(far ? at + (dx < 0 ? 1 : -1) : at, true);
+      dx = 0;
+    }
+    viewport.addEventListener("touchend", release, { passive: true });
+    viewport.addEventListener("touchcancel", release, { passive: true });
+  }
+
+  function open(strip, link) {
+    build();
+    shots = Array.prototype.slice.call(strip.querySelectorAll("a.shot"));
+    round = /--wear/.test(strip.className);
+
+    track.textContent = "";
+    slides = shots.map(function (a) {
+      var slide = document.createElement("div");
+      slide.className = "lb__slide";
+      var img = document.createElement("img");
+      img.className = "lb__img" + (round ? " lb__img--round" : "");
+      img.decoding = "async";
+      img.dataset.src = a.getAttribute("href");
+      img.alt = a.querySelector("img") ? a.querySelector("img").alt : "";
+      slide.appendChild(img);
+      track.appendChild(slide);
+      return slide;
+    });
+
+    bar.hidden = slides.length < 2;
+    box.showModal();
+    width = viewport.clientWidth;
+    setIndex(shots.indexOf(link), false);
+    var close = box.querySelector(".lb__close");
+    if (close) close.focus();
   }
 
   function wireLightbox() {
@@ -185,13 +219,7 @@
         var link = event.target.closest("a.shot");
         if (!link || !strip.contains(link)) return;
         event.preventDefault();
-        build();
-        shots = Array.prototype.slice.call(strip.querySelectorAll("a.shot"));
-        round = /--wear/.test(strip.className);
-        show(shots.indexOf(link));
-        box.showModal();
-        var close = box.querySelector(".lb__close");
-        if (close) close.focus();
+        open(strip, link);
       });
     });
   }
