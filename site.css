@@ -675,3 +675,71 @@ img { max-width: 100%; }
 }
 .note__more a { color: var(--accent); text-decoration-color: var(--accent); text-underline-offset: 0.18em; }
 .note__more a:hover { color: var(--accent-hover); }
+
+/* ── screenshots: thumbnail, then the real thing ─────────── */
+/* A thumbnail links to the full-size capture. With JavaScript the link opens
+   the lightbox; without it, the link still opens the image. */
+.shot { display: block; line-height: 0; }
+.shot:hover img { border-color: var(--edge); }
+.shot:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+.row__shots {
+  max-width: min(34rem, 40vw);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+  padding-bottom: 0.35rem;
+}
+.row__shots li { scroll-snap-align: start; }
+@media (max-width: 68rem) { .row__shots { max-width: none; } }
+
+.lb {
+  /* A dialog sits in the top layer, where percentage heights have nothing to
+     resolve against; the viewport units do the work instead. */
+  position: fixed; inset: 0;
+  border: 0; padding: 0; margin: 0;
+  width: 100vw; max-width: 100vw;
+  height: 100dvh; max-height: 100dvh;
+  /* The dim lives on the dialog rather than ::backdrop: it composites the
+     same way everywhere, and the element already covers the viewport. */
+  background: rgba(10, 13, 14, 0.965); color: var(--band-ink); overflow: hidden;
+}
+.lb::backdrop { background: #0a0d0e; }
+.lb__frame {
+  box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%;
+  padding: clamp(1rem, 3vw, 2.5rem) clamp(3.5rem, 7vw, 5.5rem) 5.5rem;
+}
+.lb__img {
+  display: block; max-width: 100%; max-height: 100%;
+  width: auto; height: auto; object-fit: contain;
+  border-radius: 0.6rem; background: #101414;
+}
+.lb__img--round { border-radius: 50%; }
+
+.lb__bar {
+  position: absolute; left: 50%; bottom: clamp(0.75rem, 2vw, 1.5rem);
+  transform: translateX(-50%);
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.lb__count {
+  margin: 0; min-width: 5.5rem; text-align: center;
+  font-family: var(--display); font-weight: 600; font-size: 0.9rem;
+  font-variation-settings: "SOFT" 0, "WONK" 0; color: #c3ccc9;
+}
+.lb__btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2.6rem; height: 2.6rem; padding: 0;
+  color: #e6eae7; background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 50%;
+  cursor: pointer;
+}
+.lb__btn:hover { background: rgba(255, 255, 255, 0.16); }
+.lb__btn:focus-visible { outline: 2px solid var(--band-accent); outline-offset: 2px; }
+.lb__close { position: absolute; top: clamp(0.75rem, 2vw, 1.5rem); right: clamp(0.75rem, 2vw, 1.5rem); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .lb[open], .lb[open]::backdrop { animation: lb-in 140ms ease-out; }
+  @keyframes lb-in { from { opacity: 0; } to { opacity: 1; } }
+}
