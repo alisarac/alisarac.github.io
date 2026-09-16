@@ -757,3 +757,14 @@ img { max-width: 100%; }
   @keyframes lb-in { from { opacity: 0; } to { opacity: 1; } }
 }
 
+
+/* A category opens with its apps fanned out: one screenshot each, composed
+   into a single image at build time. The tone behind it comes from the page,
+   so the same file works in both themes. */
+.group__hero {
+  display: block; width: 100%; height: auto;
+  margin: 0.6rem 0 1.1rem;
+  background: var(--sunk);
+  border: 1px solid var(--rule);
+}
+.group__label { margin-bottom: 0; }
