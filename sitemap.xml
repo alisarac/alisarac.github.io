@@ -110,6 +110,24 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://alisrc.com/u/encke.html"/>
   </url>
   <url>
+    <loc>https://alisrc.com/u/euchre.html</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/euchre.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://alisrc.com/u/euchre.en.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://alisrc.com/u/euchre.html"/>
+  </url>
+  <url>
+    <loc>https://alisrc.com/u/euchre.en.html</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/euchre.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://alisrc.com/u/euchre.en.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://alisrc.com/u/euchre.html"/>
+  </url>
+  <url>
     <loc>https://alisrc.com/u/fewer.html</loc>
     <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
