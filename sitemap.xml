@@ -3,7 +3,7 @@
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://alisrc.com/</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/"/>
@@ -12,7 +12,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/en.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/"/>
@@ -21,7 +21,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/arkana.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/arkana.html"/>
@@ -30,7 +30,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/arkana.en.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/arkana.html"/>
@@ -38,8 +38,26 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://alisrc.com/u/arkana.html"/>
   </url>
   <url>
+    <loc>https://alisrc.com/u/batak.html</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/batak.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://alisrc.com/u/batak.en.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://alisrc.com/u/batak.html"/>
+  </url>
+  <url>
+    <loc>https://alisrc.com/u/batak.en.html</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/batak.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://alisrc.com/u/batak.en.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://alisrc.com/u/batak.html"/>
+  </url>
+  <url>
     <loc>https://alisrc.com/u/cargocall.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/cargocall.html"/>
@@ -48,7 +66,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/cargocall.en.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/cargocall.html"/>
@@ -57,7 +75,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/damga.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/damga.html"/>
@@ -66,7 +84,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/damga.en.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/damga.html"/>
@@ -75,7 +93,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/encke.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/encke.html"/>
@@ -84,7 +102,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/encke.en.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/encke.html"/>
@@ -93,7 +111,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/fewer.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/fewer.html"/>
@@ -102,7 +120,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/fewer.en.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/fewer.html"/>
@@ -111,7 +129,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/fiskos.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/fiskos.html"/>
@@ -120,7 +138,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/fiskos.en.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/fiskos.html"/>
@@ -128,8 +146,26 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://alisrc.com/u/fiskos.html"/>
   </url>
   <url>
+    <loc>https://alisrc.com/u/hearts.html</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/hearts.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://alisrc.com/u/hearts.en.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://alisrc.com/u/hearts.html"/>
+  </url>
+  <url>
+    <loc>https://alisrc.com/u/hearts.en.html</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/hearts.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://alisrc.com/u/hearts.en.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://alisrc.com/u/hearts.html"/>
+  </url>
+  <url>
     <loc>https://alisrc.com/u/kiln.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/kiln.html"/>
@@ -138,7 +174,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/kiln.en.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/kiln.html"/>
@@ -147,7 +183,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/kopuzname.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/kopuzname.html"/>
@@ -156,7 +192,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/kopuzname.en.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/kopuzname.html"/>
@@ -165,7 +201,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/koz.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/koz.html"/>
@@ -174,7 +210,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/koz.en.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/koz.html"/>
@@ -183,7 +219,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/spades.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/spades.html"/>
@@ -192,7 +228,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/spades.en.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/spades.html"/>
@@ -201,7 +237,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/sudoku.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/sudoku.html"/>
@@ -210,7 +246,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/sudoku.en.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/sudoku.html"/>
@@ -219,7 +255,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/tokipona.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/tokipona.html"/>
@@ -228,7 +264,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/tokipona.en.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/tokipona.html"/>
@@ -237,7 +273,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/trunnion.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/trunnion.html"/>
@@ -246,7 +282,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/trunnion.en.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/trunnion.html"/>
@@ -255,7 +291,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/tumbler.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/tumbler.html"/>
@@ -264,7 +300,7 @@
   </url>
   <url>
     <loc>https://alisrc.com/u/tumbler.en.html</loc>
-    <lastmod>2026-09-24</lastmod>
+    <lastmod>2026-09-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="tr" href="https://alisrc.com/u/tumbler.html"/>
