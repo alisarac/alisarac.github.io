@@ -626,8 +626,9 @@ img { max-width: 100%; }
    cell, so a second one landed on top of the badge (seen 2026-09-28). */
 .row__link--ph {
   grid-column: 2; grid-row: 4; justify-self: start;
-  margin-top: 0.4rem; font-size: 0.86rem; font-weight: 500;
+  margin-top: 0.5rem; line-height: 0;
 }
+.row__link--ph img { width: 10.4rem; }
 @media (max-width: 68rem) { .row__link--ph { grid-row: 6; } }
 @media (max-width: 52rem) { .row__link--ph { grid-column: 1 / -1; grid-row: 6; } }
 .row__link--badge img { width: 10rem; }
