@@ -621,8 +621,15 @@ img { max-width: 100%; }
    still above Google's 60px minimum height for the web. */
 .row__link--badge { margin-top: 0.55rem; }
 
-/* Product Hunt, under the store badge: a line, not a second logo. */
-.row__link--ph { display: inline-block; margin-top: 0.35rem; font-size: 0.86rem; }
+/* Product Hunt, under the store badge: a line, not a second logo. It needs
+   its own grid row — the register's rows place every .row__link in one
+   cell, so a second one landed on top of the badge (seen 2026-09-28). */
+.row__link--ph {
+  grid-column: 2; grid-row: 4; justify-self: start;
+  margin-top: 0.4rem; font-size: 0.86rem; font-weight: 500;
+}
+@media (max-width: 68rem) { .row__link--ph { grid-row: 6; } }
+@media (max-width: 52rem) { .row__link--ph { grid-column: 1 / -1; grid-row: 6; } }
 .row__link--badge img { width: 10rem; }
 
 /* ── writing ────────────────────────────────────────────── */
