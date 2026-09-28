@@ -610,9 +610,19 @@ img { max-width: 100%; }
 .store-badge img { display: block; width: 10.5rem; height: auto; }
 .store-badge:focus-visible { outline-offset: 4px; }
 
+/* Product Hunt's badge next to the store one: same optical height, its own
+   aspect ratio. Loaded from producthunt.com so the count on it stays live
+   (Ali's call, 2026-09-28) — the only third-party request on the site. */
+.ph-badge { display: inline-block; line-height: 0; text-decoration: none; }
+.ph-badge img { display: block; width: 10.9rem; height: auto; }
+.ph-badge:focus-visible { outline-offset: 4px; }
+
 /* In the register the badge is a touch smaller than on a product page, but
    still above Google's 60px minimum height for the web. */
 .row__link--badge { margin-top: 0.55rem; }
+
+/* Product Hunt, under the store badge: a line, not a second logo. */
+.row__link--ph { display: inline-block; margin-top: 0.35rem; font-size: 0.86rem; }
 .row__link--badge img { width: 10rem; }
 
 /* ── writing ────────────────────────────────────────────── */
