@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.alisrc.okey101",
+      "sha256_cert_fingerprints": [
+        "97:EF:9E:9F:05:19:5B:49:40:BC:03:17:4A:3D:CC:66:60:0A:8C:0C:4B:F3:92:66:E4:88:18:1C:60:B1:73:BD"
+      ]
+    }
+  }
+]
