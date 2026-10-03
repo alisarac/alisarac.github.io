@@ -185,7 +185,7 @@ img { max-width: 100%; }
 }
 .proof__jump:hover { color: var(--accent); }
 .proof__jump:hover .tile::after { box-shadow: inset 0 0 0 1px var(--accent); }
-.proof__icons { display: flex; gap: 0.3rem; }
+.proof__icons { display: flex; flex-wrap: wrap; gap: 0.3rem; }
 .proof__caption {
   font-family: var(--display); font-weight: 600; font-size: 0.8rem;
   font-variation-settings: "SOFT" 0, "WONK" 0;
